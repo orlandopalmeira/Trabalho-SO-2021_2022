@@ -69,6 +69,12 @@ TRANSF init_transf (char* name, char *path, int max){
     return t;
 }
 
+void freeTransf (TRANSF t){
+    free(t->name);
+    free(t->path);
+    free(t);
+}
+
 TRANSFS init_transfs (){
     TRANSFS t = malloc(sizeof(struct transfs));
     t->transformations = malloc(sizeof(TRANSF) * 7);
@@ -76,6 +82,13 @@ TRANSFS init_transfs (){
     t->max = 7; 
 
     return t;
+}
+
+void freeTransfs (TRANSFS t){
+    for (int i=0; i<t->atual; i++)
+        freeTransf(t->transformations[i]);
+    free(t->transformations);
+    free(t);
 }
 
 void add_filter(TRANSFS t, char *name, int max, char * filters_folder) {
@@ -150,6 +163,8 @@ int main(int argc, char const *argv[]){
     }
 
     printf("%s\n", t->transformations[6]->path);
+
+    freeTransfs(t);
 
     unlink (MAIN_FIFO);
     return 0;

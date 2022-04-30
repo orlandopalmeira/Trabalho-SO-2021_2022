@@ -14,7 +14,7 @@
 #define MAIN_FIFO "../tmp/main_fifo"
 
 
-// Funcao auxiliar que lê uma linha de um ficheiro.
+// Funcao auxiliar que lê uma linha de um ficheiro (le ate ao carater '\n').
 ssize_t readln(int fd, char *line, size_t size){
 
 	char c = ' ';
@@ -75,6 +75,7 @@ void freeTransf (TRANSF t){
     free(t);
 }
 
+// Inicializa uma struct TRANSFS
 TRANSFS init_transfs (){
     TRANSFS t = malloc(sizeof(struct transfs));
     t->transformations = malloc(sizeof(TRANSF) * 7);
@@ -84,6 +85,7 @@ TRANSFS init_transfs (){
     return t;
 }
 
+// Liberta uma struct TRANSFS
 void freeTransfs (TRANSFS t){
     for (int i=0; i<t->atual; i++)
         freeTransf(t->transformations[i]);
@@ -91,6 +93,7 @@ void freeTransfs (TRANSFS t){
     free(t);
 }
 
+// Adiciona um filter atraves dos seus parametros, a um TRANSFS t.
 void add_filter(TRANSFS t, char *name, int max, char * filters_folder) {
 
     char *path = malloc(MAX);
@@ -100,7 +103,7 @@ void add_filter(TRANSFS t, char *name, int max, char * filters_folder) {
     t->atual++;
 }
 
-// Funcao que dado o file descriptor do ficheiro de configuração, retira os máximos de cada transformacao.
+// Dado o nome do ficheiro de configuração e o caminho dos executaveis, cria a struct TRANSFS com a informação relativa a cada transformaçao.
 TRANSFS read_config_file(char * config_file, char * path_to_execs){
 
     int fd = open (config_file, O_RDONLY);
@@ -122,7 +125,7 @@ TRANSFS read_config_file(char * config_file, char * path_to_execs){
             exit(1);
         }
 
-        // guarda em transf, a string correspondente à transformação
+        // guarda em transf, a string correspondente à transformação.
         transf = found;
         
         if((found = strsep(&string, " ")) == NULL){
@@ -139,7 +142,7 @@ TRANSFS read_config_file(char * config_file, char * path_to_execs){
         i++;
     }
 
-    free(config_file);
+    free(config_file); // faço free dos argumentos pq sao strdup'ed no main.
     free(path_to_execs);
     return transformations;
 }
@@ -164,8 +167,8 @@ int main(int argc, char const *argv[]){
 
     printf("%s\n", t->transformations[6]->path);
 
-    freeTransfs(t);
 
+    freeTransfs(t);
     unlink (MAIN_FIFO);
     return 0;
 }

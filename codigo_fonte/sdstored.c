@@ -165,9 +165,34 @@ int main(int argc, char const *argv[]){
         return -1;
     }
 
-    printf("%s\n", t->transformations[6]->path);
+    int fd, fd_fake, bytes_read;
+    char *buffer = malloc(MAX);
 
+    fd = open(MAIN_FIFO, O_RDONLY);
+    if (fd == -1){
+        perror("Erro ao abrir o MAIN_FIFO");
+        exit(1);
+    }
 
+    // FD aberto para enganar o read a nunca retornar EOF ate que este fd_fake seja fechado.
+    fd_fake = open(MAIN_FIFO, O_WRONLY);
+    if (fd_fake == -1){
+        perror("Erro ao abrir o FAKE_FIFO");
+        exit(1);
+    }
+
+    while( (bytes_read = read(fd, buffer, MAX)) > 0){
+        if (strcmp(buffer, "TERMINATE") == 0){
+            close(fd_fake);
+        }
+        else {
+            write(1, buffer, bytes_read);
+        }
+    }
+
+    //printf("%s\n", t->transformations[6]->path);
+
+    free(buffer);
     freeTransfs(t);
     unlink (MAIN_FIFO);
     return 0;

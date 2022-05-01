@@ -1,14 +1,17 @@
 CC = gcc
 CFLAGS = -g -Wall
 
-all: sdstore sdstored
-
-
-server: 
-	./sdstored ../etc/config.txt ../bin 
+all: client server
 
 client:
-	./client 0
+	gcc -g -Wall sdstore.c -o client
+
+server:
+	gcc -g -Wall sdstored.c -o server
+
+
+sr: 
+	./server ../etc/config.txt ../bin 
 
 
 clean:

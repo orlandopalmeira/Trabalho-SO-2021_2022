@@ -186,11 +186,13 @@ int main(int argc, char const *argv[]){
             close(fd_fake);
         }
         else {
-            write(1, buffer, bytes_read);
+            //write(1, buffer, bytes_read);
+            printf("%s\n", buffer);
         }
+        memset(buffer, 0, MAX); // para limpar o buffer.
     }
 
-    //printf("%s\n", t->transformations[6]->path);
+
 
     free(buffer);
     freeTransfs(t);

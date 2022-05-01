@@ -103,8 +103,9 @@ int main(int argc, char const *argv[]){
     bytes_read = read(fd, buffer, MAX);
     // DECIDIR O QUE FAZER COM O QUE VEM DO SERVER, O QUE ESTA NO BUFFER.
 */
-    free(ret_fifo);
+    
     //free(buffer);
     unlink(ret_fifo);
+    free(ret_fifo);
     return 0;
 }

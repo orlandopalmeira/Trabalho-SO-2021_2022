@@ -13,6 +13,7 @@
 #define MAX 1024
 #define MAIN_FIFO "../tmp/main_fifo"
 
+int task_n = 1;
 
 // Funcao auxiliar que lê uma linha de um ficheiro (le ate ao carater '\n').
 ssize_t readln(int fd, char *line, size_t size){
@@ -57,6 +58,19 @@ typedef struct transfs{
     int atual;
     int max;
 } *TRANSFS;
+
+typedef struct requests {
+
+    char * type_operation;
+    char * entrada;
+    char * saida;
+    char * filters;
+    char * pid_str;
+    int task;
+    pid_t pid;
+    struct requests * next;
+
+} *REQUEST;
 
 
 TRANSF init_transf (char* name, char *path, int max){
@@ -165,31 +179,47 @@ int main(int argc, char const *argv[]){
         return -1;
     }
 
-    int fd, fd_fake, bytes_read;
+    int fd, fd_fake, bytes_read, flag = 1;
     char *buffer = malloc(MAX);
-
+    
+    // Abrir o MAIN_FIFO
     fd = open(MAIN_FIFO, O_RDONLY);
     if (fd == -1){
         perror("Erro ao abrir o MAIN_FIFO");
         exit(1);
     }
 
+    /*
     // FD aberto para enganar o read a nunca retornar EOF ate que este fd_fake seja fechado.
     fd_fake = open(MAIN_FIFO, O_WRONLY);
     if (fd_fake == -1){
         perror("Erro ao abrir o FAKE_FIFO");
         exit(1);
     }
+    */
 
-    while( (bytes_read = read(fd, buffer, MAX)) > 0){
-        if (strcmp(buffer, "TERMINATE") == 0){
-            close(fd_fake);
+    while(flag){
+        if( (bytes_read = read(fd, buffer, MAX)) > 0 ){
+            if (strcmp(buffer, "TERMINATE") == 0){
+                flag = 0;
+            }
+            else if( strcmp(buffer, "status") == 0 ){
+                // Codigo para status.
+
+            }
+            else {
+
+                printf("%s\n", buffer);
+            }
+
+            memset(buffer, 0, MAX); // para limpar o buffer.
         }
-        else {
-            //write(1, buffer, bytes_read);
-            printf("%s\n", buffer);
-        }
-        memset(buffer, 0, MAX); // para limpar o buffer.
+        
+
+        // Adicionar request à fila.
+        
+        // Responder à fila.
+
     }
 
 

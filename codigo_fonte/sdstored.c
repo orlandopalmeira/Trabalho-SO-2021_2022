@@ -215,7 +215,6 @@ int main(int argc, char const *argv[]){
             memset(buffer, 0, MAX); // para limpar o buffer.
         }
         
-
         // Adicionar request à fila.
         
         // Responder à fila.

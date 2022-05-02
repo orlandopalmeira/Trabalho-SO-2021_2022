@@ -15,4 +15,4 @@ sr:
 
 
 clean:
-	rm ../tmp/main_fifo ../tmp/fifo*
+	rm ../tmp/main_fifo ../tmp/fifo* server client

@@ -68,14 +68,8 @@ int main(int argc, char const *argv[]){
     }
     else{
         // Type of instruction, input, output,
-        if( strcmp(argv[1], "proc-file") != 0 ){
-            snprintf(buffer, MAX, "0,%s,%s,", argv[1], argv[2]);
-            i = 3;
-        }
-        else{
-            snprintf(buffer, MAX, "1,%s,%s,", argv[2], argv[3]);
-            i = 4;
-        }    
+        snprintf(buffer, MAX, "%s,%s,", argv[2], argv[3]);
+        i = 4;
 
         // Loop to write the filters separated by ";"
         for ( ; i < argc; i++) {
@@ -86,11 +80,10 @@ int main(int argc, char const *argv[]){
         // Loop to write the pid of the client
         snprintf(buffer + strlen(buffer), MAX, ",%s", ret_fifo);
     }
-    
 
     fd = open(MAIN_FIFO, O_WRONLY);
     write(fd, buffer, strlen(buffer));
-    close(fd);
+    close(fd); memset(buffer, 0, MAX);
 
 /*
     // abrir o ret_fifo para leitura do que vem do server (TO COMPLETE)

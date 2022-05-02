@@ -77,7 +77,7 @@ int main(int argc, char const *argv[]){
             if (i != argc - 1) snprintf(buffer + strlen(buffer), MAX, ";");
         }
 
-        // Loop to write the pid of the client
+        // To write the pid of the client
         snprintf(buffer + strlen(buffer), MAX, ",%s", ret_fifo);
     }
 

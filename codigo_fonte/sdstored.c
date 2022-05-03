@@ -283,6 +283,84 @@ char * return_status(REQUEST reqs, TRANSFS t) {
     return buffer;
 }
 
+// vai as transfs buscar a path do executável de uma certa tranformação
+char *path_executable_tranformation(char *transf_name,TRANSFS trfs){
+    char *pet = NULL;
+    int i;
+    for(i = 0; i < 7 && strcmp(trfs->transformations[i]->name,transf_name); i++);
+    if(i >= 0 && i < 7) pet = trfs->transformations[i]->path;
+    return pet;
+}
+
+// executa uma transformação do request
+int exec_tranformation(char *transf, TRANSFS t){
+    char *tr_exec_path = path_executable_tranformation(transf,t);
+    execl(tr_exec_path,tr_exec_path,NULL);
+    _exit(-1);
+    return -1;
+}
+
+// executa um request
+int exec_request(TRANSFS t, int n_trnsfs, char *transfs[], char *source_path, char *output_path){
+    int pipes[n_trnsfs-1][2]; //{read,write}
+    pid_t pid;
+    int fd_source, fd_output;
+    if((fd_source = open(source_path,O_RDONLY)) < 0 || 
+       (fd_output = open(output_path,O_WRONLY)) < 0){
+        return -1;
+    }
+
+    for(int c = 0; c < n_trnsfs; c++){
+        if(c >= 0 && c < n_trnsfs-1){
+            if(pipe(pipes[c]) == -1) return -1;
+        }
+
+        if(c == 0){ // primeira tranformação
+            pid = fork();
+            if(pid == -1) return -1;
+            else if(pid == 0){ // processo filho 
+                close(pipes[c][0]);
+                dup2(pipes[c][1],STDOUT_FILENO);
+                close(pipes[c][1]);
+                // dup2(fd_source,STDIN_FILENO) -> penso que seja assim
+                exec_tranformation(transfs[c],t);
+                _exit(-1);
+            }
+            close(pipes[c][1]);
+        }
+        else if(c == n_trnsfs-1){ // última transformação
+            pid = fork();
+            if(pid == -1) return -1;
+            else if(pid == 0){ // processo filho
+                close(pipes[c-1][1]);
+                dup2(pipes[c-1][0],STDIN_FILENO);
+                close(pipes[c-1][0]);
+                // dup2(fd_output,STDOUT_FILENO) -> penso que seja assim
+                exec_tranformation(transfs[c],t);
+                _exit(-1);
+            }
+            close(pipes[c-1][0]);
+        }
+        else{ // tranformações intermédias
+            pid = fork();
+            if(pid == -1) return -1;
+            else if(pid == 0){ // processo filho
+                dup2(pipes[c-1][0],STDIN_FILENO);
+                close(pipes[c-1][0]);
+                dup2(pipes[c][1],STDOUT_FILENO);
+                close(pipes[c][1]);
+                exec_tranformation(transfs[c],t);
+                _exit(-1);
+            }
+            close(pipes[c-1][0]);
+            close(pipes[c][1]);
+        }
+    }
+    for(int i = 0; i < n_trnsfs; i++) wait(NULL);
+    close(fd_source);
+    close(fd_output);
+    return 0;
+}
 
 int main(int argc, char const *argv[]){
     
@@ -368,6 +446,14 @@ int main(int argc, char const *argv[]){
                 if(verify(t, req)){
                     alter_usage(t, req, 1);
                     // processar o pedido.
+                    char *transfs[req->n_transformations]; // separar as tranformações
+                    for(int i = 0; i < req->n_transformations; i++){
+                        transfs[i] = req->transformations[i];
+                    }
+
+                    if(exec_request(t,req->n_transformations,transfs,req->source_path,req->output_path) < 0){
+                        // ????FAZER ALGUMA CENA CASO O exec_request DER ERRO??????????
+                    }
 
                 }
                 else{

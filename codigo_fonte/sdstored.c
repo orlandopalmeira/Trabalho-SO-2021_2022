@@ -292,6 +292,10 @@ int main(int argc, char const *argv[]){
                 printf("%s\n", status);
                 /*
                 fd_reply = open(found, O_WRONLY);
+                if (fd_reply == -1){
+                    perror("Error opening fd_reply");
+                    exit(1);
+                }
                 write(fd_reply, status, strlen(status));
                 close(fd_reply);*/
                 free(string);

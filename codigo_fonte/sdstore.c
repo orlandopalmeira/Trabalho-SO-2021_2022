@@ -60,7 +60,7 @@ int main(int argc, char const *argv[]){
     char* buffer = malloc(MAX); memset(buffer, 0, MAX);
     // Envia mensagem "status" caso queira saber o status do servidor
     if ( strcmp(argv[1], "status") == 0 ){
-        snprintf(buffer, MAX, "status;%s", ret_fifo);
+        snprintf(buffer, MAX, "1;%s", ret_fifo);
     }
     // Envia mensagem "TERMINATE" para fechar o servidor
     else if( strcmp(argv[1], "TERMINATE") == 0 ){
@@ -68,7 +68,7 @@ int main(int argc, char const *argv[]){
     }
     else{
         // Type of instruction, input, output,
-        snprintf(buffer, MAX, "%s;%s;", argv[2], argv[3]);
+        snprintf(buffer, MAX, "0;%s;%s;", argv[2], argv[3]);
         i = 4;
 
         // Loop to write the filters separated by ";"

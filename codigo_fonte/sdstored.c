@@ -66,9 +66,9 @@ typedef struct requests {
     //int type;           // 1 se for do tipo status, 0 caso contrario        
     char * source_path;
     char * output_path;
-    char ** filters;    // array com as strings relativas à transformação
-    int nfilters;       // numero de elementos do array 'filters'
-    int mem;            // indica a memoria alocada no array 'filters'
+    char ** transformations;    // array com as strings relativas à transformação
+    int ntransformations;       // numero de elementos do array 'transformations'
+    int mem;            // indica a memoria alocada no array 'transformations'
     char * ret_fifo;    // string que indica o pipe que devem ser enviadas mensagens de reply ao cliente
     pid_t pid;          // campo para auxiliar o libertamento do request.
     struct requests * next;
@@ -92,16 +92,16 @@ void add_request(REQUEST * r, char * request) {
     string = strdup(request);
     (*r)->source_path = strdup(strsep(&string, ";"));
     (*r)->output_path = strdup(strsep(&string, ";"));
-    (*r)->filters = malloc((*r)->mem * sizeof(char*));
+    (*r)->transformations = malloc((*r)->mem * sizeof(char*));
      
     for (i = 0; strcmp( (found = strsep(&string, ";")), "end") ; i++){
         if (i == (*r)->mem){
             (*r)->mem += 10;
-            (*r)->filters = realloc((*r)->filters, (*r)->mem);
+            (*r)->transformations = realloc((*r)->transformations, (*r)->mem);
         }
-        (*r)->filters[i] = strdup(found);
+        (*r)->transformations[i] = strdup(found);
     }
-    (*r)->nfilters = i;
+    (*r)->ntransformations = i;
     (*r)->ret_fifo = strsep(&string, ";");
     (*r)->task = task_n++;
     (*r)->next = NULL;
@@ -112,9 +112,9 @@ void free_request(REQUEST r) {
 
     free(r->source_path);
     free(r->output_path);
-    for (int i = 0; i<r->nfilters; i++)
-        free(r->filters[i]);
-    free(r->filters);
+    for (int i = 0; i<r->ntransformations; i++)
+        free(r->transformations[i]);
+    free(r->transformations);
     free(r->ret_fifo);
     free(r);
 
@@ -156,10 +156,10 @@ void freeTransfs (TRANSFS t){
 }
 
 // Adiciona um filter atraves dos seus parametros, a um TRANSFS t.
-void add_filter(TRANSFS t, char *name, int max, char * filters_folder) {
+void add_filter(TRANSFS t, char *name, int max, char * transformations_folder) {
 
     char *path = malloc(MAX);
-    snprintf(path, MAX, "%s/%s", filters_folder, name);
+    snprintf(path, MAX, "%s/%s", transformations_folder, name);
 
     t->transformations[(t->atual)] = init_transf(name, path, max);
     t->atual++;
@@ -209,7 +209,34 @@ TRANSFS read_config_file(char * config_file, char * path_to_execs){
     return transformations;
 }
 
+char * return_status(REQUEST reqs, TRANSFS t) {
 
+    int i;
+    char * buffer = malloc(MAX);
+    REQUEST r;
+
+    // Adds information on pending tasks
+    for (r = reqs; r ; r = r->next) {
+
+        snprintf(buffer, MAX, "Task #%d: ", r->task);
+        if (r->task == 0)
+            snprintf(buffer + strlen(buffer), MAX, "proc-file ");
+        else
+            snprintf(buffer + strlen(buffer), MAX, "status ");
+        snprintf(buffer + strlen(buffer), MAX, "%s %s ", r->source_path, r->output_path);
+        for (i = 0; i<reqs->ntransformations; i++) {
+            snprintf(buffer + strlen(buffer), MAX, "%s ", reqs->transformations[i]);
+        }
+        snprintf(buffer + strlen(buffer), MAX, "\n");
+    }
+
+    // Adds information on usage of the transformations
+    for (i = 0; i < t -> atual; i++){
+        snprintf(buffer + strlen(buffer), MAX, "transf %s: %d/%d (running/max)\n", t->transformations[i]->name, t->transformations[i]->running, t->transformations[i]->max);
+    }
+
+    return buffer;
+}
 
 
 int main(int argc, char const *argv[]){
@@ -254,8 +281,21 @@ int main(int argc, char const *argv[]){
                 flag = 0;
                 close(fd_fake);
             }
-            else if( strcmp(buffer, "status") == 0 ){
+            else if( *buffer == '1' ){ // status
                 // Codigo para status.
+                int fd_reply;
+                char *string = strdup(buffer);
+                char *found;
+                strsep(&string, ";");
+                found = strsep(&string, ";");
+                char* status = return_status(reqs, t);
+                printf("%s\n", status);
+                /*
+                fd_reply = open(found, O_WRONLY);
+                write(fd_reply, status, strlen(status));
+                close(fd_reply);*/
+                free(string);
+                free(status);
 
             }
             else {
@@ -289,9 +329,9 @@ typedef struct requests {
     //int type;           // 1 se for do tipo status, 0 caso contrario        
     char * source_path;
     char * output_path;
-    char ** filters;    // array com as strings relativas à transformação
-    int nfilters;       // numero de elementos do array 'filters'
-    int mem;            // indica a memoria alocada no array 'filters'
+    char ** transformations;    // array com as strings relativas à transformação
+    int ntransformations;       // numero de elementos do array 'transformations'
+    int mem;            // indica a memoria alocada no array 'transformations'
     char * ret_fifo;    // string que indica o pipe que devem ser enviadas mensagens de reply ao cliente
     pid_t pid;          // campo para auxiliar o libertamento do request.
     struct requests * next;

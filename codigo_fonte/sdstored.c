@@ -90,7 +90,9 @@ void add_request(REQUEST * r, char * request) {
     // Parses the request
     char *string, *found;
     string = strdup(request);
+    strsep(&string, ";"); // descartar número inicial que indica o tipo do request.
     (*r)->source_path = strdup(strsep(&string, ";"));
+    printf("%s\n", (*r)->source_path);
     (*r)->output_path = strdup(strsep(&string, ";"));
     (*r)->transformations = malloc((*r)->mem * sizeof(char*));
      
@@ -306,6 +308,10 @@ int main(int argc, char const *argv[]){
 
                 printf("String enviada->%s", buffer);
                 add_request(&reqs, buffer);
+
+            }
+
+            while (reqs){
 
             }
 

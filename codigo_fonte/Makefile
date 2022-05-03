@@ -12,6 +12,9 @@ cl:
 term:
 	./sdstore TERMINATE
 
+debs:
+	gdb --args ./sdstored ../etc/config.txt ../bin 
+
 
 clean:
 	rm ../tmp/main_fifo ../tmp/fifo* sdstored sdstore

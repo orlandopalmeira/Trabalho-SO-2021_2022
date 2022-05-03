@@ -92,7 +92,7 @@ void add_request(REQUEST * r, char * request) {
     string = strdup(request);
     strsep(&string, ";"); // descartar número inicial que indica o tipo do request.
     (*r)->source_path = strdup(strsep(&string, ";"));
-    printf("%s\n", (*r)->source_path);
+    //printf("entry_path:%s\n", (*r)->source_path); // para verificar o entry path.
     (*r)->output_path = strdup(strsep(&string, ";"));
     (*r)->transformations = malloc((*r)->mem * sizeof(char*));
      
@@ -107,6 +107,7 @@ void add_request(REQUEST * r, char * request) {
     (*r)->ret_fifo = strsep(&string, ";");
     (*r)->task = task_n++;
     (*r)->next = NULL;
+    free(string);
 }
 
 
@@ -165,6 +166,7 @@ void add_filter(TRANSFS t, char *name, int max, char * transformations_folder) {
 
     t->transformations[(t->atual)] = init_transf(name, path, max);
     t->atual++;
+    free(path);
 }
 
 // Dado o nome do ficheiro de configuração e o caminho dos executaveis, cria a struct TRANSFS com a informação relativa a cada transformaçao.
@@ -260,6 +262,7 @@ int main(int argc, char const *argv[]){
     int fd, bytes_read, flag = 1;
     int fd_fake;
     char *buffer = malloc(MAX);
+    memset(buffer, 0, MAX);
     
     // Abrir o MAIN_FIFO
     fd = open(MAIN_FIFO, O_RDONLY);
@@ -311,9 +314,7 @@ int main(int argc, char const *argv[]){
 
             }
 
-            while (reqs){
-
-            }
+            
 
             memset(buffer, 0, MAX); // para limpar o buffer.
             

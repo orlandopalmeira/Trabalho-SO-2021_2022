@@ -4,7 +4,13 @@ CFLAGS = -g -Wall
 all: sdstore sdstored
 
 sr: 
-	./sdstore ../etc/config.txt ../bin 
+	./sdstored ../etc/config.txt ../bin 
+
+cl:
+	./sdstore proc-file ent saida compress decompress
+
+term:
+	./sdstore TERMINATE
 
 
 clean:

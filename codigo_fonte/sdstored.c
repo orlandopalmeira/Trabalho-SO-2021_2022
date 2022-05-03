@@ -59,18 +59,65 @@ typedef struct transfs{
     int max;
 } *TRANSFS;
 
+// Estrutura de dados que serve como Queue de pedidos enviados por clientes.
 typedef struct requests {
-
-    char * type_operation;
-    char * entrada;
-    char * saida;
-    char * filters;
-    char * pid_str;
-    int task;
-    pid_t pid;
+    
+    int task;           // identificador do número da task.
+    //int type;           // 1 se for do tipo status, 0 caso contrario        
+    char * source_path;
+    char * output_path;
+    char ** filters;    // array com as strings relativas à transformação
+    int nfilters;       // numero de elementos do array 'filters'
+    int mem;            // indica a memoria alocada no array 'filters'
+    char * ret_fifo;    // string que indica o pipe que devem ser enviadas mensagens de reply ao cliente
+    pid_t pid;          // campo para auxiliar o libertamento do request.
     struct requests * next;
 
 } *REQUEST;
+
+
+void add_request(REQUEST * r, char * request) {
+
+    int i;
+    // Appends the request
+    while (*r) {
+        r = &(*r)->next;
+    }
+    // Cria um novo request para adicionar à fila.
+    *r = malloc(sizeof(struct requests));
+    (*r)->mem = 10;
+
+    // Parses the request
+    char *string, *found;
+    string = strdup(request);
+    (*r)->source_path = strdup(strsep(&string, ";"));
+    (*r)->output_path = strdup(strsep(&string, ";"));
+    (*r)->filters = malloc((*r)->mem * sizeof(char*));
+     
+    for (i = 0; strcmp( (found = strsep(&string, ";")), "end") ; i++){
+        if (i == (*r)->mem){
+            (*r)->mem += 10;
+            (*r)->filters = realloc((*r)->filters, (*r)->mem);
+        }
+        (*r)->filters[i] = strdup(found);
+    }
+    (*r)->nfilters = i;
+    (*r)->ret_fifo = strsep(&string, ";");
+    (*r)->task = task_n++;
+
+    (*r)->next = NULL;
+}
+
+
+void free_request(REQUEST r) {
+
+    free(r->source_path);
+    free(r->output_path);
+    free(r->filters);
+    free(r->ret_fifo);
+    free(r);
+
+}
 
 
 TRANSF init_transf (char* name, char *path, int max){
@@ -179,7 +226,8 @@ int main(int argc, char const *argv[]){
         return -1;
     }
 
-    int fd, fd_fake, bytes_read, flag = 1;
+    int fd, bytes_read, flag = 1;
+    //int fd_fake;
     char *buffer = malloc(MAX);
     
     // Abrir o MAIN_FIFO

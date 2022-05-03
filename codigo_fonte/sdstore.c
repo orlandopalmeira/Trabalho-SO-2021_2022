@@ -78,7 +78,7 @@ int main(int argc, char const *argv[]){
         }
 
         // To write the pid of the client
-        snprintf(buffer + strlen(buffer), MAX, "end;%s", ret_fifo);
+        snprintf(buffer + strlen(buffer), MAX, "end;%s\n", ret_fifo);
     }
 
     fd = open(MAIN_FIFO, O_WRONLY);

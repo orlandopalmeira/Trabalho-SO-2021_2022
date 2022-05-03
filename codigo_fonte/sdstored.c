@@ -10,7 +10,7 @@
 
 // SERVIDOR
 
-#define MAX 1024
+#define MAX 2048
 #define MAIN_FIFO "../tmp/main_fifo"
 
 int task_n = 1;
@@ -104,7 +104,6 @@ void add_request(REQUEST * r, char * request) {
     (*r)->nfilters = i;
     (*r)->ret_fifo = strsep(&string, ";");
     (*r)->task = task_n++;
-
     (*r)->next = NULL;
 }
 
@@ -245,6 +244,7 @@ int main(int argc, char const *argv[]){
         exit(1);
     }
     */
+   REQUEST reqs = NULL;
 
     while(flag){
         if( (bytes_read = read(fd, buffer, MAX)) > 0 ){
@@ -257,22 +257,41 @@ int main(int argc, char const *argv[]){
             }
             else {
 
-                printf("%s\n", buffer);
+                printf("String enviada->%s", buffer);
+                add_request(&reqs, buffer);
+                printf("%d;%s;%s\n", reqs->task, reqs->source_path, reqs->output_path);
+
             }
 
             memset(buffer, 0, MAX); // para limpar o buffer.
+            
         }
-        
-        // Adicionar request à fila.
-        
-        // Responder à fila.
-
+    
+    printf ("oi\n");
+    
     }
-
-
+    
 
     free(buffer);
     freeTransfs(t);
     unlink (MAIN_FIFO);
     return 0;
 }
+
+/*
+// Estrutura de dados que serve como Queue de pedidos enviados por clientes.
+typedef struct requests {
+    
+    int task;           // identificador do número da task.
+    //int type;           // 1 se for do tipo status, 0 caso contrario        
+    char * source_path;
+    char * output_path;
+    char ** filters;    // array com as strings relativas à transformação
+    int nfilters;       // numero de elementos do array 'filters'
+    int mem;            // indica a memoria alocada no array 'filters'
+    char * ret_fifo;    // string que indica o pipe que devem ser enviadas mensagens de reply ao cliente
+    pid_t pid;          // campo para auxiliar o libertamento do request.
+    struct requests * next;
+
+} *REQUEST;
+*/

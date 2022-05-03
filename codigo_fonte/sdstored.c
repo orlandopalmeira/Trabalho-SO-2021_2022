@@ -210,38 +210,6 @@ TRANSFS read_config_file(char * config_file, char * path_to_execs){
 }
 
 
-char* return_status(REQUEST r, TRANSFS f) {
-
-    char* buffer = malloc(MAX);
-    REQUEST tmp = r;
-    // Adds pending tasks
-    for (; r; r = r->next) {
-
-        snprintf(buffer, MAX, "Task #%d: transform %s %s ", r->task, r->source_path, r->output_path);
-        char * aux = strdup(r->filters);
-        char * filter = strtok(aux, " ");
-        while(filter) {
-
-            snprintf(buffer + strlen(buffer), MAX, "%s ", filter);
-            filter = strtok(NULL, " ");
-
-        }
-        free(aux);
-        snprintf(buffer + strlen(buffer), MAX, "\n");
-        
-    }
-
-    // Adds information on usage of the filters
-    for (; f; f = f->next) 
-        snprintf(buffer + strlen(buffer), MAX, "Filter %s : %d/%d (running/max)\n", 
-                                                f->filter_name, f->usage, f->max);
-
-    // Adds pid of the server
-    snprintf(buffer + strlen(buffer), MAX, "Pid: %d\n", getpid());                                            
-
-    return buffer;
-
-}
 
 
 int main(int argc, char const *argv[]){

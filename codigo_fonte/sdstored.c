@@ -254,6 +254,7 @@ TRANSFS read_config_file(char * config_file, char * path_to_execs){
     return transformations;
 }
 
+// Retorna a string a mostrar ao cliente sobre o estado do servidor.
 char * return_status(REQUEST reqs, TRANSFS t) {
 
     int i;

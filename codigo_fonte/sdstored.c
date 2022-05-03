@@ -110,6 +110,7 @@ void add_request(REQUEST * r, char * request) {
     free(string);
 }
 
+/*
 // FUNCAO INACABADA DE ADICIONAR UM NODO DE UM REQUEST A UM REQUEST
 void add(REQUEST * r, REQUEST rp){
     int i;
@@ -118,7 +119,7 @@ void add(REQUEST * r, REQUEST rp){
         r = &(*r)->next;
     }
 }
-
+*/
 
 void free_request(REQUEST r) {
 
@@ -177,6 +178,36 @@ void add_transf(TRANSFS t, char *name, int max, char * transformations_folder) {
     t->transformations[(t->atual)] = init_transf(name, path, max);
     t->atual++;
     free(path);
+}
+
+// Retorna 1 se for valido, 0 caso contrario
+int verify(TRANSFS tr, REQUEST req) {
+
+    int i, j, ret = 1;
+    for (i = 0; i < req->n_transformations; i++){
+        for (j = 0; j < tr->atual && ret; j++){
+            if (strcmp(tr->transformations[j]->name, req->transformations[i]) == 0 && tr->transformations[j]->running == tr->transformations[j]->max ){
+                ret = 0;
+                break;
+            }
+        }
+    } 
+    return ret;
+}
+
+// Altera a tabela transfs atualizando o valor de utilizaçao das transformaçoes(aumenta se flg=1, diminui caso contrario)
+void alter_usage(TRANSFS tr, REQUEST req, int flg) {
+
+    int i, j;
+    for (i = 0; i < req->n_transformations; i++){
+        for (j = 0; j < tr->atual; j++){ 
+            if ( strcmp(tr->transformations[j]->name, req->transformations[i]) == 0 ){
+                if (flg == 1) {tr->transformations[j]->running++;}
+                else {tr->transformations[j]->running++;}
+                break;
+            }
+        }
+    }
 }
 
 // Dado o nome do ficheiro de configuração e o caminho dos executaveis, cria a struct TRANSFS com a informação relativa a cada transformaçao.
@@ -238,8 +269,8 @@ char * return_status(REQUEST reqs, TRANSFS t) {
         else
             snprintf(buffer + strlen(buffer), MAX, "status ");
         snprintf(buffer + strlen(buffer), MAX, "%s %s ", r->source_path, r->output_path);
-        for (i = 0; i<reqs->n_transformations; i++) {
-            snprintf(buffer + strlen(buffer), MAX, "%s ", reqs->transformations[i]);
+        for (i = 0; i<r->n_transformations; i++) {
+            snprintf(buffer + strlen(buffer), MAX, "%s ", r->transformations[i]);
         }
         snprintf(buffer + strlen(buffer), MAX, "\n");
     }
@@ -288,7 +319,7 @@ int main(int argc, char const *argv[]){
         exit(1);
     }
     
-   REQUEST reqs = NULL, reqs_attended = NULL, reqs_to_attend = NULL;
+   REQUEST reqs = NULL;
 
     while(flag){
         if( (bytes_read = read(fd, buffer, MAX)) > 0 ){
@@ -325,18 +356,33 @@ int main(int argc, char const *argv[]){
             }
 
             // atendimento dos requests
-            while (reqs){
-                fd_reply = open(reqs->ret_fifo, O_WRONLY);
+            REQUEST req = reqs; // para percorrer a lista sem alterar o apontador de reqs
+            while (req){
+                
+                /*fd_reply = open(req->ret_fifo, O_WRONLY);
                 if (fd_reply == -1){
                     perror("Error opening fd_reply to send to client");
                     exit(1);
                 }
+                */
+                if(verify(t, req)){
+                    alter_usage(t, req, 1);
+                    // processar o pedido.
 
-
-
+                }
+                else{
+                    reqs->pid = 0; // maneira de identificar que o pedido n foi atendido
+                }
+                req = req->next;
             }
 
-            memset(buffer, 0, MAX); // para limpar o buffer.
+            /* (TALVEZ LIBERTAR PEDIDOS DENTRO DO CICLO DE CIMA)
+            // libertar pedidos atendidos.
+            while(r)
+            */
+
+            // Para limpar o buffer
+            memset(buffer, 0, MAX); 
             
         }
 

@@ -226,7 +226,7 @@ int main(int argc, char const *argv[]){
     }
 
     int fd, bytes_read, flag = 1;
-    //int fd_fake;
+    int fd_fake;
     char *buffer = malloc(MAX);
     
     // Abrir o MAIN_FIFO
@@ -236,20 +236,20 @@ int main(int argc, char const *argv[]){
         exit(1);
     }
 
-    /*
     // FD aberto para enganar o read a nunca retornar EOF ate que este fd_fake seja fechado.
     fd_fake = open(MAIN_FIFO, O_WRONLY);
     if (fd_fake == -1){
         perror("Erro ao abrir o FAKE_FIFO");
         exit(1);
     }
-    */
+    
    REQUEST reqs = NULL;
 
     while(flag){
         if( (bytes_read = read(fd, buffer, MAX)) > 0 ){
             if (strcmp(buffer, "TERMINATE") == 0){
                 flag = 0;
+                close(fd_fake);
             }
             else if( strcmp(buffer, "status") == 0 ){
                 // Codigo para status.
@@ -259,7 +259,6 @@ int main(int argc, char const *argv[]){
 
                 printf("String enviada->%s", buffer);
                 add_request(&reqs, buffer);
-                printf("%d;%s;%s\n", reqs->task, reqs->source_path, reqs->output_path);
 
             }
 
@@ -267,7 +266,6 @@ int main(int argc, char const *argv[]){
             
         }
     
-    printf ("oi\n");
     
     }
     

@@ -12,6 +12,9 @@ cl:
 term:
 	./sdstore TERMINATE
 
+status:
+	./sdstore status
+
 debs:
 	gdb --args ./sdstored ../etc/config.txt ../bin 
 

@@ -67,7 +67,7 @@ typedef struct requests {
     char * source_path;
     char * output_path;
     char ** transformations;    // array com as strings relativas à transformação
-    int ntransformations;       // numero de elementos do array 'transformations'
+    int n_transformations;       // numero de elementos do array 'transformations'
     int mem;            // indica a memoria alocada no array 'transformations'
     char * ret_fifo;    // string que indica o pipe que devem ser enviadas mensagens de reply ao cliente
     pid_t pid;          // campo para auxiliar o libertamento do request.
@@ -103,11 +103,20 @@ void add_request(REQUEST * r, char * request) {
         }
         (*r)->transformations[i] = strdup(found);
     }
-    (*r)->ntransformations = i;
+    (*r)->n_transformations = i;
     (*r)->ret_fifo = strsep(&string, ";");
     (*r)->task = task_n++;
     (*r)->next = NULL;
     free(string);
+}
+
+// FUNCAO INACABADA DE ADICIONAR UM NODO DE UM REQUEST A UM REQUEST
+void add(REQUEST * r, REQUEST rp){
+    int i;
+    // Appends the request
+    while (*r) {
+        r = &(*r)->next;
+    }
 }
 
 
@@ -115,7 +124,7 @@ void free_request(REQUEST r) {
 
     free(r->source_path);
     free(r->output_path);
-    for (int i = 0; i<r->ntransformations; i++)
+    for (int i = 0; i<r->n_transformations; i++)
         free(r->transformations[i]);
     free(r->transformations);
     free(r->ret_fifo);
@@ -158,8 +167,9 @@ void freeTransfs (TRANSFS t){
     free(t);
 }
 
-// Adiciona um filter atraves dos seus parametros, a um TRANSFS t.
-void add_filter(TRANSFS t, char *name, int max, char * transformations_folder) {
+
+// Adiciona uma transformaçao atraves dos seus parametros, a um TRANSFS t.
+void add_transf(TRANSFS t, char *name, int max, char * transformations_folder) {
 
     char *path = malloc(MAX);
     snprintf(path, MAX, "%s/%s", transformations_folder, name);
@@ -201,7 +211,7 @@ TRANSFS read_config_file(char * config_file, char * path_to_execs){
 
         //printf("[DEBUG] -> %s \n%s\n", transf, found);
         
-        add_filter(transformations, transf, atoi(found), path_to_execs);
+        add_transf(transformations, transf, atoi(found), path_to_execs);
         
         free(string);
         free(transf);
@@ -228,7 +238,7 @@ char * return_status(REQUEST reqs, TRANSFS t) {
         else
             snprintf(buffer + strlen(buffer), MAX, "status ");
         snprintf(buffer + strlen(buffer), MAX, "%s %s ", r->source_path, r->output_path);
-        for (i = 0; i<reqs->ntransformations; i++) {
+        for (i = 0; i<reqs->n_transformations; i++) {
             snprintf(buffer + strlen(buffer), MAX, "%s ", reqs->transformations[i]);
         }
         snprintf(buffer + strlen(buffer), MAX, "\n");
@@ -259,7 +269,7 @@ int main(int argc, char const *argv[]){
         return -1;
     }
 
-    int fd, bytes_read, flag = 1;
+    int fd, fd_reply, bytes_read, flag = 1;
     int fd_fake;
     char *buffer = malloc(MAX);
     memset(buffer, 0, MAX);
@@ -278,7 +288,7 @@ int main(int argc, char const *argv[]){
         exit(1);
     }
     
-   REQUEST reqs = NULL;
+   REQUEST reqs = NULL, reqs_attended = NULL, reqs_to_attend = NULL;
 
     while(flag){
         if( (bytes_read = read(fd, buffer, MAX)) > 0 ){
@@ -314,24 +324,30 @@ int main(int argc, char const *argv[]){
 
             }
 
-            
+            // atendimento dos requests
+            while (reqs){
+                fd_reply = open(reqs->ret_fifo, O_WRONLY);
+                if (fd_reply == -1){
+                    perror("Error opening fd_reply to send to client");
+                    exit(1);
+                }
+
+
+
+            }
 
             memset(buffer, 0, MAX); // para limpar o buffer.
             
         }
 
-
-    
     
     }
-    
 
     free(buffer);
     freeTransfs(t);
     unlink (MAIN_FIFO);
     return 0;
 }
-
 /*
 // Estrutura de dados que serve como Queue de pedidos enviados por clientes.
 typedef struct requests {
@@ -341,7 +357,7 @@ typedef struct requests {
     char * source_path;
     char * output_path;
     char ** transformations;    // array com as strings relativas à transformação
-    int ntransformations;       // numero de elementos do array 'transformations'
+    int n_transformations;       // numero de elementos do array 'transformations'
     int mem;            // indica a memoria alocada no array 'transformations'
     char * ret_fifo;    // string que indica o pipe que devem ser enviadas mensagens de reply ao cliente
     pid_t pid;          // campo para auxiliar o libertamento do request.

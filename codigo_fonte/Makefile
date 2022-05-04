@@ -7,7 +7,13 @@ sr:
 	./sdstored ../etc/config.txt ../bin
 
 cl:
-	./sdstore proc-file ../files/file0.txt ../output/file_out0.txt bcompress bdecompress
+	./sdstore proc-file ../files/file0.txt ../output/file_out0.txt bcompress bdecompress gcompress gdecompress
+
+cl1:
+	./sdstore proc-file ../files/file1.txt ../output/file_out1.txt bcompress bdecompress
+
+cl2:
+	./sdstore proc-file ../files/file2.txt ../output/file_out2.txt bcompress bdecompress
 
 term:
 	./sdstore TERMINATE

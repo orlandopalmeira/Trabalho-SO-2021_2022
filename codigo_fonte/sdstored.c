@@ -307,8 +307,12 @@ int exec_request(TRANSFS t, int n_trnsfs, char *transfs[], char *source_path, ch
     int pipes[n_trnsfs-1][2]; //{read,write}
     pid_t pid;  
     int fd_source, fd_output;
-    if((fd_source = open(source_path,O_RDONLY)) < 0 || 
-       (fd_output = open(output_path,O_WRONLY)) < 0){
+    if((fd_source = open(source_path,O_RDONLY)) < 0){
+        perror("ERRO ao abrir fd de entrada");
+        return -1;
+    }
+    if ( (fd_output = open(output_path,O_WRONLY) ) < 0){
+        perror("ERRO ao abrir fd de saida");
         return -1;
     }
 
@@ -432,7 +436,7 @@ int main(int argc, char const *argv[]){
             }
             else {
 
-                printf("String recebida->%s", buffer);
+                printf("String recebida -> %s", buffer);
                 add_request(&reqs, buffer);
 
             }
@@ -457,7 +461,7 @@ int main(int argc, char const *argv[]){
 
                     if(exec_request(t,req->n_transformations,transfs,req->source_path,req->output_path) < 0){
                         // ????FAZER ALGUMA CENA CASO O exec_request DER ERRO??????????
-                        printf("Nao foi possivel executar (LINHA 460)\n");
+                        printf("Nao foi possivel executar\n");
                     }
 
                 }

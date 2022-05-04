@@ -7,7 +7,7 @@ sr:
 	./sdstored ../etc/config.txt ../bin 
 
 cl:
-	./sdstore proc-file ent saida compress decompress
+	./sdstore proc-file ../files/file0.csv ../output/file_out0.csv compress decompress
 
 term:
 	./sdstore TERMINATE

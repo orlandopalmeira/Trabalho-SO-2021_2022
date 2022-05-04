@@ -86,6 +86,7 @@ void add_request(REQUEST * r, char * request) {
     // Cria um novo request para adicionar à fila.
     *r = malloc(sizeof(struct requests));
     (*r)->mem = 10;
+    (*r)->pid = 0;
 
     // Parses the request
     char *string, *found;
@@ -304,7 +305,7 @@ int exec_tranformation(char *transf, TRANSFS t){
 // executa um request
 int exec_request(TRANSFS t, int n_trnsfs, char *transfs[], char *source_path, char *output_path){
     int pipes[n_trnsfs-1][2]; //{read,write}
-    pid_t pid;
+    pid_t pid;  
     int fd_source, fd_output;
     if((fd_source = open(source_path,O_RDONLY)) < 0 || 
        (fd_output = open(output_path,O_WRONLY)) < 0){
@@ -379,7 +380,7 @@ int main(int argc, char const *argv[]){
         return -1;
     }
 
-    int fd, fd_reply, bytes_read, flag = 1;
+    int status, fd, fd_reply, bytes_read, flag = 1;
     int fd_fake;
     char *buffer = malloc(MAX);
     memset(buffer, 0, MAX);
@@ -398,7 +399,9 @@ int main(int argc, char const *argv[]){
         exit(1);
     }
     
-   REQUEST reqs = NULL;
+   REQUEST reqs = NULL, req = NULL, ant = NULL;
+   //REQUEST *head = NULL;
+
 
     while(flag){
         if( (bytes_read = read(fd, buffer, MAX)) > 0 ){
@@ -429,13 +432,13 @@ int main(int argc, char const *argv[]){
             }
             else {
 
-                printf("String enviada->%s", buffer);
+                printf("String recebida->%s", buffer);
                 add_request(&reqs, buffer);
 
             }
 
             // atendimento dos requests
-            REQUEST req = reqs; // para percorrer a lista sem alterar o apontador de reqs
+            req = reqs; // para percorrer a lista sem alterar o apontador de reqs
             while (req){
                 
                 /*fd_reply = open(req->ret_fifo, O_WRONLY);
@@ -454,25 +457,46 @@ int main(int argc, char const *argv[]){
 
                     if(exec_request(t,req->n_transformations,transfs,req->source_path,req->output_path) < 0){
                         // ????FAZER ALGUMA CENA CASO O exec_request DER ERRO??????????
+                        printf("Nao foi possivel executar (LINHA 460)\n");
                     }
 
-                }
-                else{
-                    reqs->pid = 0; // maneira de identificar que o pedido n foi atendido
                 }
                 req = req->next;
             }
 
-            /* (TALVEZ LIBERTAR PEDIDOS DENTRO DO CICLO DE CIMA)
-            // libertar pedidos atendidos.
-            while(r)
-            */
+            // libertar pedidos atendidos
+            req = reqs;
+            ant = req;
+            while(req){
+                // caso em que o pedido ainda não começou a ser processado.
+                if(req->pid == 0){
+                    ant = req;
+                    req = req->next;
+                }
+                // caso em que o pedido começou a processar mas ainda não acabou.
+                else if (waitpid(req->pid, &status, WNOHANG) != req->pid){
+                    ant = req;
+                    req = req->next;
+                }
+                // caso em que o pedido ja foi atendido.
+                else {
+                                      
+                    alter_usage(t, req, 0);
+                    REQUEST temp = req;
+                    if (ant == req)
+                        ant = ant->next;
+                    else
+                        ant->next = req->next;
+                    
+                    req = req->next;
+                    free_request(temp);
+                }
+            }
 
             // Para limpar o buffer
             memset(buffer, 0, MAX); 
             
         }
-
     
     }
 

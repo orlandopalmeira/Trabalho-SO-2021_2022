@@ -416,7 +416,7 @@ int main(int argc, char const *argv[]){
             }
             else if( *buffer == '1' ){ // status
 
-                // libertar pedidos atendidos INICIO
+                // libertar pedidos atendidos INICIO (TENHO ISTO A LIMPAR SEMPRE A FILA ANTES DE FAZER UM STATUS PARA TER A INFORMAÇAO MAIS ATUALIZADA, TALVEZ SEJA UMA BOA IDEIA FAZER UMA FUNCAO QUE LIMPA REQS)
                 req = reqs;
                 ant = req;
                 int test;

@@ -7,7 +7,7 @@ sr:
 	./sdstored ../etc/config.txt ../bin 
 
 cl:
-	./sdstore proc-file ../files/file0.csv ../output/file_out0.csv compress decompress
+	./sdstore proc-file ../files/file0.txt ../output/file_out0.txt bcompress bdecompress
 
 term:
 	./sdstore TERMINATE
@@ -20,4 +20,4 @@ debs:
 
 
 clean:
-	rm ../tmp/main_fifo ../tmp/fifo* sdstored sdstore
+	rm ../tmp/main_fifo ../tmp/fifo* sdstored sdstore ../output/*

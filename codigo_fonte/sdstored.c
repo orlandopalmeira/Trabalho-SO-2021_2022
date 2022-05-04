@@ -311,7 +311,8 @@ int exec_request(TRANSFS t, int n_trnsfs, char *transfs[], char *source_path, ch
         perror("ERRO ao abrir fd de entrada");
         return -1;
     }
-    if ( (fd_output = open(output_path,O_WRONLY) ) < 0){
+    if ( (fd_output = open(output_path, O_CREAT | O_TRUNC | O_WRONLY, 0644) ) < 0){
+        printf ("outpath -> %s\n", output_path);
         perror("ERRO ao abrir fd de saida");
         return -1;
     }
@@ -328,7 +329,7 @@ int exec_request(TRANSFS t, int n_trnsfs, char *transfs[], char *source_path, ch
                 close(pipes[c][0]);
                 dup2(pipes[c][1],STDOUT_FILENO);
                 close(pipes[c][1]);
-                // dup2(fd_source,STDIN_FILENO) -> penso que seja assim
+                // dup2(fd_source,STDIN_FILENO); // -> penso que seja assim
                 exec_tranformation(transfs[c],t);
                 _exit(-1);
             }
@@ -384,7 +385,7 @@ int main(int argc, char const *argv[]){
         return -1;
     }
 
-    int status, fd, fd_reply, bytes_read, flag = 1;
+    int status, fd, /*fd_reply,*/ bytes_read, flag = 1;
     int fd_fake;
     char *buffer = malloc(MAX);
     memset(buffer, 0, MAX);
@@ -404,8 +405,6 @@ int main(int argc, char const *argv[]){
     }
     
    REQUEST reqs = NULL, req = NULL, ant = NULL;
-   //REQUEST *head = NULL;
-
 
     while(flag){
         if( (bytes_read = read(fd, buffer, MAX)) > 0 ){
@@ -415,7 +414,7 @@ int main(int argc, char const *argv[]){
             }
             else if( *buffer == '1' ){ // status
                 // Codigo para status.
-                int fd_reply;
+                //int fd_reply;
                 char *string = strdup(buffer);
                 char *found;
                 strsep(&string, ";");

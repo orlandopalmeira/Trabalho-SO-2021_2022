@@ -204,7 +204,7 @@ void alter_usage(TRANSFS tr, REQUEST req, int flg) {
         for (j = 0; j < tr->atual; j++){ 
             if ( strcmp(tr->transformations[j]->name, req->transformations[i]) == 0 ){
                 if (flg == 1) {tr->transformations[j]->running++;}
-                else {tr->transformations[j]->running++;}
+                else {tr->transformations[j]->running--;}
                 break;
             }
         }
@@ -329,7 +329,7 @@ int exec_request(TRANSFS t, int n_trnsfs, char *transfs[], char *source_path, ch
                 close(pipes[c][0]);
                 dup2(pipes[c][1],STDOUT_FILENO);
                 close(pipes[c][1]);
-                // dup2(fd_source,STDIN_FILENO); // -> penso que seja assim
+                dup2(fd_source,STDIN_FILENO); // -> penso que seja assim
                 exec_tranformation(transfs[c],t);
                 _exit(-1);
             }
@@ -342,7 +342,7 @@ int exec_request(TRANSFS t, int n_trnsfs, char *transfs[], char *source_path, ch
                 close(pipes[c-1][1]);
                 dup2(pipes[c-1][0],STDIN_FILENO);
                 close(pipes[c-1][0]);
-                // dup2(fd_output,STDOUT_FILENO) -> penso que seja assim
+                dup2(fd_output,STDOUT_FILENO); //-> penso que seja assim
                 exec_tranformation(transfs[c],t);
                 _exit(-1);
             }
@@ -387,6 +387,7 @@ int main(int argc, char const *argv[]){
 
     int status, fd, /*fd_reply,*/ bytes_read, flag = 1;
     int fd_fake;
+    pid_t pid_pr;
     char *buffer = malloc(MAX);
     memset(buffer, 0, MAX);
     
@@ -452,16 +453,20 @@ int main(int argc, char const *argv[]){
                 */
                 if(verify(t, req)){
                     alter_usage(t, req, 1);
-                    // processar o pedido.
-                    char *transfs[req->n_transformations]; // separar as tranformações
-                    for(int i = 0; i < req->n_transformations; i++){
-                        transfs[i] = req->transformations[i];
+                    if ( (pid_pr = fork()) == 0){
+                        // processar o pedido.
+                        char *transfs[req->n_transformations]; // separar as tranformações
+                        for(int i = 0; i < req->n_transformations; i++){
+                            transfs[i] = req->transformations[i];
+                        }                    
+                        
+                        if(exec_request(t,req->n_transformations,transfs,req->source_path,req->output_path) < 0){
+                            // ????FAZER ALGUMA CENA CASO O exec_request DER ERRO??????????
+                            //printf("Nao foi possivel executar\n");
+                        }
+                        _exit(0);
                     }
-
-                    if(exec_request(t,req->n_transformations,transfs,req->source_path,req->output_path) < 0){
-                        // ????FAZER ALGUMA CENA CASO O exec_request DER ERRO??????????
-                        printf("Nao foi possivel executar\n");
-                    }
+                    req->pid = pid_pr;
 
                 }
                 req = req->next;
@@ -492,7 +497,7 @@ int main(int argc, char const *argv[]){
                         ant->next = req->next;
                     
                     req = req->next;
-                    free_request(temp);
+                    //free_request(temp);
                 }
             }
 

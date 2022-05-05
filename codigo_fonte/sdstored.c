@@ -70,7 +70,7 @@ typedef struct requests {
     int n_transformations;       // numero de elementos do array 'transformations'
     int mem;            // indica a memoria alocada no array 'transformations'
     char * ret_fifo;    // string que indica o pipe que devem ser enviadas mensagens de reply ao cliente
-    pid_t pid;          // campo para auxiliar o libertamento do request.
+    pid_t pid;          // 0 se ainda nem foi verificado para processar, -1 se ja foi verificado para processar, >0 se esta em processamento com o numero do pid que o esta a processar.
     struct requests * next;
 
 } *REQUEST;
@@ -105,10 +105,10 @@ void add_request(REQUEST * r, char * request) {
         (*r)->transformations[i] = strdup(found);
     }
     (*r)->n_transformations = i;
-    (*r)->ret_fifo = strdup( strsep(&string, ";") );
+    (*r)->ret_fifo = strdup( strsep(&string, ";\n") );
     (*r)->task = task_n++;
     (*r)->next = NULL;
-    free(string);
+    //free(string);
 }
 
 /*
@@ -414,7 +414,7 @@ int main(int argc, char const *argv[]){
             // Libertar pedidos atendidos INICIO (TENHO ISTO A LIMPAR SEMPRE A FILA ANTES DE FAZER UMA OPERACAO PARA TER A INFORMAÇAO MAIS ATUALIZADA, TALVEZ SEJA UMA BOA IDEIA FAZER UMA FUNCAO QUE LIMPA REQS)
             req = reqs;
             ant = req;
-            int r_wpid;
+            int r_wpid, fd_reply;
             while(req){
                 // caso em que o pedido ainda não começou a ser processado.
                 if(req->pid == 0){
@@ -429,7 +429,7 @@ int main(int argc, char const *argv[]){
                     //printf("TASK: %d\n", reqs->task);
                 }
                 // caso em que o pedido ja foi atendido.
-                else {   
+                else {
                     
                     alter_usage(t, req, 0);
                     REQUEST temp = req;
@@ -452,10 +452,9 @@ int main(int argc, char const *argv[]){
             }
             else if( *buffer == '1' ){ // status
 
-                int fd_reply;
                 char *string = strdup(buffer);
                 char *found;
-                strsep(&string, ";");   // descarta o '1' indicativo de ser uma instruçao status.
+                strsep(&string, ";");   // descarta o '1' que é indicativo de ser uma instruçao status.
                 found = strsep(&string, ";");
                 char* status = return_status(reqs, t);
                 //printf("%s\n", status);
@@ -474,25 +473,29 @@ int main(int argc, char const *argv[]){
             }
             else {
 
-                printf("String recebida -> %s", buffer);
+                //printf("String recebida -> %s", buffer);
                 add_request(&reqs, buffer);
 
             }
+
+            // Para limpar o buffer
+            memset(buffer, 0, strlen(buffer)); // talvez em vez de streln(buffer) tenha de ser MAX
             
             // Atendimento dos requests
             req = reqs; // para percorrer a lista sem alterar o apontador de reqs
             while (req){
+                //printf("---%s---", req->ret_fifo);
+                //printf("PASSEI AQUI\n");
+                while ( (fd_reply = open(req->ret_fifo, O_WRONLY)) == -1 );
                 
-                /*fd_reply = open(req->ret_fifo, O_WRONLY);
-                if (fd_reply == -1){
-                    perror("Error opening fd_reply to send to client");
-                    exit(1);
-                }
-                */
-                
-                if( req->pid == 0 && verify(t, req) ){ // verifica se ja foi atendido o pedido e se é valido tendo em conta as transfs maximas.
+                if( (req->pid == 0 || req->pid == -1) && verify(t, req) ){ // verifica se ja foi atendido o pedido e se é valido tendo em conta as transfs maximas.
                     alter_usage(t, req, 1);
                     if ( (pid_pr = fork()) == 0){
+                        
+                        snprintf(buffer, MAX, "processing\n");
+                        write(fd_reply, buffer, strlen(buffer));
+                        memset(buffer, 0, strlen(buffer));
+
                         // processar o pedido.
                         char *transfs[req->n_transformations]; // separar as tranformações
                         for(int i = 0; i < req->n_transformations; i++){
@@ -503,12 +506,28 @@ int main(int argc, char const *argv[]){
                             // ????FAZER ALGUMA CENA CASO O exec_request DER ERRO??????????
                             printf("Nao foi possivel executar o request\n");
                         }
-                        printf("\n[DEBUG] Acabou de processar o request %d!!!\n\n", req->task);
+
+                        //printf("\n[DEBUG] Acabou de processar o request %d!!!\n\n", req->task);
+                        snprintf(buffer, MAX, "concluded\n");
+                        write(fd_reply, buffer, strlen(buffer));
+                        memset(buffer, 0, strlen(buffer));
                         _exit(0);
                     }
+                    close(fd_reply);
                     req->pid = pid_pr;
                 }
+                else if (req->pid == 0){
+                    snprintf(buffer, MAX, "pending\n");
+                    write(fd_reply, buffer, strlen(buffer));
+                    memset(buffer, 0, strlen(buffer)); 
+                    req->pid = -1;
+                    close(fd_reply);
+                }
+                else{ // else if(req->pid == -1)
+                    close(fd_reply);
+                }
                 req = req->next;
+
             }
 
             // Para limpar o buffer
@@ -523,20 +542,3 @@ int main(int argc, char const *argv[]){
     unlink (MAIN_FIFO);
     return 0;
 }
-/*
-// Estrutura de dados que serve como Queue de pedidos enviados por clientes.
-typedef struct requests {
-    
-    int task;           // identificador do número da task.
-    //int type;           // 1 se for do tipo status, 0 caso contrario        
-    char * source_path;
-    char * output_path;
-    char ** transformations;    // array com as strings relativas à transformação
-    int n_transformations;       // numero de elementos do array 'transformations'
-    int mem;            // indica a memoria alocada no array 'transformations'
-    char * ret_fifo;    // string que indica o pipe que devem ser enviadas mensagens de reply ao cliente
-    pid_t pid;          // campo para auxiliar o libertamento do request.
-    struct requests * next;
-
-} *REQUEST;
-*/

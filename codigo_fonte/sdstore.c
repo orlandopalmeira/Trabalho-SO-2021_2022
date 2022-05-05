@@ -13,6 +13,7 @@
 #define MAX 1024
 #define MAIN_FIFO "../tmp/main_fifo"
 
+// INUTILIZADO
 char* build_request(char* argv[], int argc, char* pid) {
 
     int i;
@@ -83,21 +84,35 @@ int main(int argc, char const *argv[]){
 
     fd = open(MAIN_FIFO, O_WRONLY);
     write(fd, buffer, strlen(buffer));
-    close(fd); 
+    close(fd);
 
+    // Para impedir que o cliente tente ler algo que venha do servidor que nunca virá, uma vez que é um TERMINATE.
+    if ( strcmp(buffer, "TERMINATE") == 0 ){
+        free(buffer);
+        unlink(ret_fifo);
+        free(ret_fifo);
+        return 0;
+    }
+    
     // abrir o ret_fifo para leitura do que vem do server 
-    int bytes_read;
     //printf ("A ABRIR O FD_REPLY PRA LEITURA\n");
-    fd = open(ret_fifo, O_RDONLY);
+    while( (fd = open(ret_fifo, O_RDONLY)) == -1);
     //printf ("ABRIU PRA LEITURA\n");
     if (fd == -1){
         perror("Error opening return_fifo");
         exit(1);
     }
-    memset(buffer, 0, MAX);
+    memset(buffer, 0, MAX); // talvez em vez de MAX possa usar strlen(buffer);
     
     // Escreve o que vier escrito do servidor.
+    int bytes_read, fd_fake = 0;
     while( (bytes_read = read(fd, buffer, MAX)) > 0){
+        if(strcmp(buffer, "pending\n") == 0){
+            fd_fake = open(ret_fifo, O_WRONLY); // para impedir que seja terminada precocemente a leitura do ret_fifo.
+        }
+        if(fd_fake != 0 && strcmp(buffer, "concluded\n") == 0){
+            close(fd_fake);
+        }
         write(1, buffer, bytes_read);
     }
 

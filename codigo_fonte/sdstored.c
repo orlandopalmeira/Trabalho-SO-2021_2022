@@ -75,7 +75,7 @@ typedef struct requests {
 
 } *REQUEST;
 
-
+// Adiciona ao fim da lista ligada r, um request codificado pela string request.
 void add_request(REQUEST * r, char * request) {
 
     int i;
@@ -105,14 +105,14 @@ void add_request(REQUEST * r, char * request) {
         (*r)->transformations[i] = strdup(found);
     }
     (*r)->n_transformations = i;
-    (*r)->ret_fifo = strsep(&string, ";");
+    (*r)->ret_fifo = strdup( strsep(&string, ";") );
     (*r)->task = task_n++;
     (*r)->next = NULL;
     free(string);
 }
 
 /*
-// FUNCAO INACABADA DE ADICIONAR UM NODO DE UM REQUEST A UM REQUEST
+// FUNCAO INACABADA DE ADICIONAR UM NODO DE UM REQUEST A UM APONTADOR DE REQUEST
 void add(REQUEST * r, REQUEST rp){
     int i;
     // Appends the request
@@ -129,7 +129,7 @@ void free_request(REQUEST r) {
     for (int i = 0; i<r->n_transformations; i++)
         free(r->transformations[i]);
     free(r->transformations);
-    //free(r->ret_fifo);
+    free(r->ret_fifo);
     free(r);
 
 }
@@ -410,66 +410,66 @@ int main(int argc, char const *argv[]){
     while(flag){
         
         if( (bytes_read = read(fd, buffer, MAX)) > 0 ){
+
+            // Libertar pedidos atendidos INICIO (TENHO ISTO A LIMPAR SEMPRE A FILA ANTES DE FAZER UMA OPERACAO PARA TER A INFORMAÇAO MAIS ATUALIZADA, TALVEZ SEJA UMA BOA IDEIA FAZER UMA FUNCAO QUE LIMPA REQS)
+            req = reqs;
+            ant = req;
+            int r_wpid;
+            while(req){
+                // caso em que o pedido ainda não começou a ser processado.
+                if(req->pid == 0){
+                    ant = req;
+                    req = req->next;
+                }
+                // caso em que o pedido começou a processar mas ainda não acabou.
+                else if ( (r_wpid = waitpid(req->pid, &status, WNOHANG) ) != req->pid){
+                    printf("[DEBUG] WAITPID RETORNOU [%d] no caso em que devia retornar 0\n", r_wpid);
+                    ant = req;
+                    req = req->next;
+                    //printf("TASK: %d\n", reqs->task);
+                }
+                // caso em que o pedido ja foi atendido.
+                else {   
+                    
+                    alter_usage(t, req, 0);
+                    REQUEST temp = req;
+                    if (ant == req){
+                        ant = ant->next;
+                        reqs = reqs->next;
+                    }                        
+                    else
+                        ant->next = req->next;
+                    
+                    req = req->next;
+                    free_request(temp);
+                }
+            }
+            // Libertar pedidos atendidos FIM
+
             if (strcmp(buffer, "TERMINATE") == 0){
                 flag = 0;
                 close(fd_fake);
             }
             else if( *buffer == '1' ){ // status
 
-                // libertar pedidos atendidos INICIO (TENHO ISTO A LIMPAR SEMPRE A FILA ANTES DE FAZER UM STATUS PARA TER A INFORMAÇAO MAIS ATUALIZADA, TALVEZ SEJA UMA BOA IDEIA FAZER UMA FUNCAO QUE LIMPA REQS)
-                req = reqs;
-                ant = req;
-                int test;
-                //sleep(1);
-                while(req){
-                    // caso em que o pedido ainda não começou a ser processado.
-                    if(req->pid == 0){
-                        ant = req;
-                        req = req->next;
-                    }
-                    // caso em que o pedido começou a processar mas ainda não acabou.
-                    else if ( (test = waitpid(req->pid, &status, WNOHANG) ) != req->pid){
-                        printf("WAITPID RETORNOU 0!!![[%d]\n", test);
-                        ant = req;
-                        req = req->next;
-                        //printf("TASK: %d\n", reqs->task);
-                    }
-                    // caso em que o pedido ja foi atendido.
-                    else {   
-                        
-                        alter_usage(t, req, 0);
-                        REQUEST temp = req;
-                        if (ant == req){
-                            ant = ant->next;
-                            reqs = reqs->next;
-                        }                        
-                        else
-                            ant->next = req->next;
-                        
-                        req = req->next;
-                        free_request(temp);
-                }
-            }
-            // libertar pedidos atendidos FIM
-
-                //int fd_reply;
+                int fd_reply;
                 char *string = strdup(buffer);
                 char *found;
-                strsep(&string, ";");
+                strsep(&string, ";");   // descarta o '1' indicativo de ser uma instruçao status.
                 found = strsep(&string, ";");
                 char* status = return_status(reqs, t);
-                printf("%s\n", status);
-                memset(status, 0, MAX); 
-                /*
+                //printf("%s\n", status);
+                //printf ("A ABRIR O FD_REPLY PRA ESCRITA\n");
                 fd_reply = open(found, O_WRONLY);
                 if (fd_reply == -1){
                     perror("Error opening fd_reply");
                     exit(1);
                 }
                 write(fd_reply, status, strlen(status));
-                close(fd_reply);*/
+                close(fd_reply);
                 free(string);
-                //free(status);
+                //memset(status, 0, MAX); 
+                free(status);
 
             }
             else {
@@ -479,7 +479,7 @@ int main(int argc, char const *argv[]){
 
             }
             
-            // atendimento dos requests
+            // Atendimento dos requests
             req = reqs; // para percorrer a lista sem alterar o apontador de reqs
             while (req){
                 
@@ -503,46 +503,12 @@ int main(int argc, char const *argv[]){
                             // ????FAZER ALGUMA CENA CASO O exec_request DER ERRO??????????
                             printf("Nao foi possivel executar o request\n");
                         }
-                        printf("\nAcabou de processar o request %d!!!\n\n", req->task);
+                        printf("\n[DEBUG] Acabou de processar o request %d!!!\n\n", req->task);
                         _exit(0);
                     }
                     req->pid = pid_pr;
                 }
                 req = req->next;
-            }
-
-            // libertar pedidos atendidos
-            req = reqs;
-            ant = req;
-            int test;
-            //sleep(1);
-            while(req){
-                // caso em que o pedido ainda não começou a ser processado.
-                if(req->pid == 0){
-                    ant = req;
-                    req = req->next;
-                }
-                // caso em que o pedido começou a processar mas ainda não acabou.
-                else if ( (test = waitpid(req->pid, &status, WNOHANG) ) != req->pid){
-                    ant = req;
-                    req = req->next;
-                }
-                // caso em que o pedido ja foi atendido.
-                else {   
-                    
-                    alter_usage(t, req, 0);
-                    REQUEST temp = req;
-                    if (ant == req){
-                        ant = ant->next;
-                        reqs = reqs->next;
-                    }                        
-                    else
-                        ant->next = req->next;
-                    
-                    req = req->next;
-                    free_request(temp);
-                    
-                }
             }
 
             // Para limpar o buffer

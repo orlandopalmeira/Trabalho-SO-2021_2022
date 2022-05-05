@@ -83,21 +83,28 @@ int main(int argc, char const *argv[]){
 
     fd = open(MAIN_FIFO, O_WRONLY);
     write(fd, buffer, strlen(buffer));
-    close(fd); memset(buffer, 0, MAX);
+    close(fd); 
 
-/*
-    // abrir o ret_fifo para leitura do que vem do server (TO COMPLETE)
+    // abrir o ret_fifo para leitura do que vem do server 
     int bytes_read;
+    //printf ("A ABRIR O FD_REPLY PRA LEITURA\n");
     fd = open(ret_fifo, O_RDONLY);
+    //printf ("ABRIU PRA LEITURA\n");
     if (fd == -1){
         perror("Error opening return_fifo");
         exit(1);
     }
-    bytes_read = read(fd, buffer, MAX);
-    // DECIDIR O QUE FAZER COM O QUE VEM DO SERVER, O QUE ESTA NO BUFFER.
-*/
+    memset(buffer, 0, MAX);
     
-    //free(buffer);
+    // Escreve o que vier escrito do servidor.
+    while( (bytes_read = read(fd, buffer, MAX)) > 0){
+        write(1, buffer, bytes_read);
+    }
+
+    close(fd);
+
+    
+    free(buffer);
     unlink(ret_fifo);
     free(ret_fifo);
     return 0;

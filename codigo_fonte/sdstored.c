@@ -63,7 +63,7 @@ typedef struct transfs{
 typedef struct requests {
     
     int task;           // identificador do número da task.
-    //int type;           // 1 se for do tipo status, 0 caso contrario        
+    int type;           // 1 se for do tipo status, 0 se for proc-file       
     char * source_path;
     char * output_path;
     char ** transformations;    // array com as strings relativas à transformação
@@ -87,6 +87,7 @@ void add_request(REQUEST * r, char * request) {
     *r = malloc(sizeof(struct requests));
     (*r)->mem = 10;
     (*r)->pid = 0;
+    (*r)->type = 0;
 
     // Parses the request
     char *string, *found;
@@ -266,7 +267,7 @@ char * return_status(REQUEST reqs, TRANSFS t) {
     for (r = reqs; r ; r = r->next) {
 
         snprintf(buffer, MAX, "Task #%d: ", r->task);
-        if (r->task == 0)
+        if (r->type == 0)
             snprintf(buffer + strlen(buffer), MAX, "proc-file ");
         else
             snprintf(buffer + strlen(buffer), MAX, "status ");
@@ -369,6 +370,7 @@ int exec_request(TRANSFS t, int n_trnsfs, char *transfs[], char *source_path, ch
     return 0;
 }
 
+/* TEM DE SE FAZER COM (REQUEST* reqs, ...)
 void free_concluded_request(REQUEST reqs, TRANSFS t){
     REQUEST req = reqs, ant = req;
     int r_wpid;
@@ -402,6 +404,7 @@ void free_concluded_request(REQUEST reqs, TRANSFS t){
         }
     }
 }
+*/
 
 int main(int argc, char const *argv[]){
     
@@ -419,7 +422,7 @@ int main(int argc, char const *argv[]){
         return -1;
     }
 
-    int status, fd, /*fd_reply,*/ bytes_read, flag = 1;
+    int fd, fd_reply, bytes_read, flag = 1;
     int fd_fake;
     pid_t pid_pr;
     char *buffer = malloc(MAX);
@@ -439,54 +442,92 @@ int main(int argc, char const *argv[]){
         exit(1);
     }
     
-   REQUEST reqs = NULL, req = NULL, ant = NULL;
+    REQUEST reqs = NULL;//, req = NULL; // ant = NULL;
 
     while(flag){
         
         if( (bytes_read = read(fd, buffer, MAX)) > 0 ){
-            int fd_reply;
-            free_concluded_request(reqs,t);
-
-            if (strcmp(buffer, "TERMINATE") == 0){
-                flag = 0;
-                close(fd_fake);
-            }
-            else if( *buffer == '1' ){ // status
-
-                char *string = strdup(buffer);
-                char *found;
-                strsep(&string, ";");   // descarta o '1' que é indicativo de ser uma instruçao status.
-                found = strsep(&string, ";");
-                char* status = return_status(reqs, t);
-                //printf("%s\n", status);
-                //printf ("A ABRIR O FD_REPLY PRA ESCRITA\n");
-                fd_reply = open(found, O_WRONLY);
-                if (fd_reply == -1){
-                    perror("Error opening fd_reply");
-                    exit(1);
+            
+            //free_concluded_request(reqs,t);
+            REQUEST req = reqs, ant = req;
+            int r_wpid;
+            while(req){
+                // caso em que o pedido ainda não começou a ser processado.
+                if(req->pid == 0){
+                    ant = req;
+                    req = req->next;
                 }
-                write(fd_reply, status, strlen(status));
-                close(fd_reply);
-                free(string);
-                //memset(status, 0, MAX); 
-                free(status);
+                // caso em que o pedido começou a processar mas ainda não acabou.
+                else if ( (r_wpid = waitpid(req->pid, NULL, WNOHANG) ) != req->pid){
+                    printf("[DEBUG] WAITPID RETORNOU [%d] no caso em que devia retornar 0\n", r_wpid);
+                    ant = req;
+                    req = req->next;
+                    //printf("TASK: %d\n", reqs->task);
+                }
+                // caso em que o pedido ja foi atendido.
+                else {
 
+                    alter_usage(t, req, 0);
+                    REQUEST temp = req;
+                    if (ant == req){
+                        ant = ant->next;
+                        reqs = reqs->next;
+                    }                        
+                    else
+                        ant->next = req->next;
+
+                    req = req->next;
+                    free_request(temp);
+                }
             }
-            else {
+            // FIM DA LIBERTACAO DE REQUESTS
 
-                //printf("String recebida -> %s", buffer);
-                add_request(&reqs, buffer);
+            // Separação de possiveis varios comandos dentro duma mensagem, previamente delimitados por '\n'.
+            char *message, *command;
+            message = strdup(buffer);
+            while( strlen(command = strsep(&message, "\n")) > 0){
 
+                if (strcmp(command, "TERMINATE") == 0){
+                    flag = 0;
+                    close(fd_fake);
+                }
+                else if( *command == '1' ){ // status
+
+                    char *string = strdup(command);
+                    char *found, *stats = NULL;
+                    strsep(&string, ";");   // descarta o '1' que é indicativo de ser uma instruçao status.
+                    found = strsep(&string, ";");
+                    stats = return_status(reqs, t);
+                    //printf("%s\n", stats);
+                    //printf ("A ABRIR O FD_REPLY PRA ESCRITA\n");
+                    fd_reply = open(found, O_WRONLY);
+                    if (fd_reply == -1){
+                        perror("Error opening fd_reply");
+                        exit(1);
+                    }
+                    write(fd_reply, stats, strlen(stats));
+                    close(fd_reply);
+                    free(string);
+                    free(stats);
+
+                }
+                else {
+
+                    //printf("String recebida -> %s", command);
+                    add_request(&reqs, command);
+
+                }
             }
+            free(message);            
 
+            //printf("String recebida -> %s\n", buffer);
             // Para limpar o buffer
             memset(buffer, 0, strlen(buffer)); // talvez em vez de streln(buffer) tenha de ser MAX
             
             // Atendimento dos requests
             req = reqs; // para percorrer a lista sem alterar o apontador de reqs
             while (req){
-                //printf("---%s---", req->ret_fifo);
-                //printf("PASSEI AQUI\n");
+                
                 while ( (fd_reply = open(req->ret_fifo, O_WRONLY)) == -1 );
                 
                 if( (req->pid == 0 || req->pid == -1) && verify(t, req) ){ // verifica se ja foi atendido o pedido e se é valido tendo em conta as transfs maximas.

@@ -370,9 +370,8 @@ int exec_request(TRANSFS t, int n_trnsfs, char *transfs[], char *source_path, ch
     return 0;
 }
 
-/* TEM DE SE FAZER COM (REQUEST* reqs, ...)
-void free_concluded_request(REQUEST reqs, TRANSFS t){
-    REQUEST req = reqs, ant = req;
+void free_concluded_request(REQUEST *reqs, TRANSFS t){
+    REQUEST req = *reqs, ant = req;
     int r_wpid;
     while(req){
         // caso em que o pedido ainda não começou a ser processado.
@@ -394,7 +393,7 @@ void free_concluded_request(REQUEST reqs, TRANSFS t){
             REQUEST temp = req;
             if (ant == req){
                 ant = ant->next;
-                reqs = reqs->next;
+                (*reqs) = (*reqs)->next;
             }                        
             else
                 ant->next = req->next;
@@ -404,7 +403,7 @@ void free_concluded_request(REQUEST reqs, TRANSFS t){
         }
     }
 }
-*/
+
 
 int main(int argc, char const *argv[]){
     
@@ -447,41 +446,8 @@ int main(int argc, char const *argv[]){
     while(flag){
         
         if( (bytes_read = read(fd, buffer, MAX)) > 0 ){
-            
-            //free_concluded_request(reqs,t);
-            REQUEST req = reqs, ant = req;
-            int r_wpid;
-            while(req){
-                // caso em que o pedido ainda não começou a ser processado.
-                if(req->pid == 0){
-                    ant = req;
-                    req = req->next;
-                }
-                // caso em que o pedido começou a processar mas ainda não acabou.
-                else if ( (r_wpid = waitpid(req->pid, NULL, WNOHANG) ) != req->pid){
-                    printf("[DEBUG] WAITPID RETORNOU [%d] no caso em que devia retornar 0\n", r_wpid);
-                    ant = req;
-                    req = req->next;
-                    //printf("TASK: %d\n", reqs->task);
-                }
-                // caso em que o pedido ja foi atendido.
-                else {
-
-                    alter_usage(t, req, 0);
-                    REQUEST temp = req;
-                    if (ant == req){
-                        ant = ant->next;
-                        reqs = reqs->next;
-                    }                        
-                    else
-                        ant->next = req->next;
-
-                    req = req->next;
-                    free_request(temp);
-                }
-            }
-            // FIM DA LIBERTACAO DE REQUESTS
-
+            REQUEST req = reqs;
+            free_concluded_request(&reqs,t);
             // Separação de possiveis varios comandos dentro duma mensagem, previamente delimitados por '\n'.
             char *message, *command;
             message = strdup(buffer);

@@ -452,7 +452,7 @@ int main(int argc, char const *argv[]){
     }
     
     
-    REQUEST reqs = NULL, req = NULL; // ant = NULL;
+    REQUEST reqs = NULL, req = NULL;
 
     while(flag){
         
@@ -498,7 +498,7 @@ int main(int argc, char const *argv[]){
 
             //printf("String recebida -> %s\n", buffer);
             // Para limpar o buffer
-            memset(buffer, 0, strlen(buffer)); // talvez em vez de streln(buffer) tenha de ser MAX
+            memset(buffer, 0, strlen(buffer));
             
             // Atendimento dos requests
             req = reqs; // para percorrer a lista sem alterar o apontador de reqs
@@ -549,7 +549,7 @@ int main(int argc, char const *argv[]){
             }
 
             // Para limpar o buffer
-            memset(buffer, 0, MAX); 
+            memset(buffer, 0, strlen(buffer)); 
             
         }
     

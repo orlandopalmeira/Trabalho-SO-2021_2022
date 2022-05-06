@@ -450,6 +450,14 @@ int main(int argc, char const *argv[]){
         perror("Erro ao abrir o FAKE_FIFO");
         exit(1);
     }
+    if (fork() == 0){
+        int c = 1;
+        while(c){
+            sleep(10);
+            c = write(fd_fake, "n\n", 3); // para ir acordando o read.
+        }
+        _exit(0);
+    }
     
     
     REQUEST reqs = NULL, req = NULL;
@@ -457,13 +465,17 @@ int main(int argc, char const *argv[]){
     while(flag){
         
         if( (bytes_read = read(fd, buffer, MAX)) > 0 ){
+
+            // Libertacao de pedidos ja atendidos.
             free_concluded_request(&reqs,t);
+
             // Separação de possiveis varios comandos dentro duma mensagem, previamente delimitados por '\n'.
             char *message, *command;
             message = strdup(buffer);
             while( strlen(command = strsep(&message, "\n")) > 0){
 
-                if (strcmp(command, "TERMINATE") == 0){
+                if(*command == 'n'); // comando de acordar o read.
+                else if (strcmp(command, "TERMINATE") == 0){
                     flag = 0;
                     close(fd_fake);
                 }
@@ -487,7 +499,7 @@ int main(int argc, char const *argv[]){
                     free(stats);
 
                 }
-                else {
+                else { // *command == '0'
 
                     //printf("String recebida -> %s", command);
                     add_request(&reqs, command);
@@ -509,10 +521,8 @@ int main(int argc, char const *argv[]){
                 if( (req->pid == 0 || req->pid == -1) && verify(t, req) ){ // verifica se ja foi atendido o pedido e se é valido tendo em conta as transfs maximas.
                     alter_usage(t, req, 1);
                     if ( (pid_pr = fork()) == 0){
-                        
-                        snprintf(buffer, MAX, "processing\n");
-                        write(fd_reply, buffer, strlen(buffer));
-                        memset(buffer, 0, strlen(buffer));
+                       
+                        write(fd_reply, "processing\n", 12);
 
                         // processar o pedido.
                         char *transfs[req->n_transformations]; // separar as tranformações
@@ -526,18 +536,14 @@ int main(int argc, char const *argv[]){
                         }
 
                         //printf("\n[DEBUG] Acabou de processar o request %d!!!\n\n", req->task);
-                        snprintf(buffer, MAX, "concluded\n");
-                        write(fd_reply, buffer, strlen(buffer));
-                        memset(buffer, 0, strlen(buffer));
+                        write(fd_reply, "concluded\n", 11);
                         _exit(0);
                     }
                     close(fd_reply);
                     req->pid = pid_pr;
                 }
                 else if (req->pid == 0){
-                    snprintf(buffer, MAX, "pending\n");
-                    write(fd_reply, buffer, strlen(buffer));
-                    memset(buffer, 0, strlen(buffer)); 
+                    write(fd_reply, "pending\n", 9);
                     req->pid = -1;
                     close(fd_reply);
                 }
@@ -547,14 +553,11 @@ int main(int argc, char const *argv[]){
                 req = req->next;
 
             }
-
-            // Para limpar o buffer
-            memset(buffer, 0, strlen(buffer)); 
             
         }
     
     }
-
+    
     free(buffer);
     freeTransfs(t);
     unlink (MAIN_FIFO);

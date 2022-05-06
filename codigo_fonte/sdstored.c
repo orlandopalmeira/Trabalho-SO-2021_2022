@@ -197,6 +197,16 @@ int verify(TRANSFS tr, REQUEST req) {
     return ret;
 }
 
+// Verifica se as transformações estão no seu uso máximo.
+int isTableFull(TRANSFS tr){
+    int i, r = 1;
+    for (i=0; i<tr->atual && r == 1; i++){
+        if (tr->transformations[i]->running < tr->transformations[i]->max)
+            r = 0;
+    }
+    return r;
+}
+
 // Altera a tabela transfs atualizando o valor de utilizaçao das transformaçoes(aumenta se flg=1, diminui caso contrario)
 void alter_usage(TRANSFS tr, REQUEST req, int flg) {
 
@@ -381,7 +391,7 @@ void free_concluded_request(REQUEST *reqs, TRANSFS t){
         }
         // caso em que o pedido começou a processar mas ainda não acabou.
         else if ( (r_wpid = waitpid(req->pid, NULL, WNOHANG) ) != req->pid){
-            printf("[DEBUG] WAITPID RETORNOU [%d] no caso em que devia retornar 0\n", r_wpid);
+            //printf("[DEBUG] WAITPID RETORNOU [%d] no caso em que devia retornar 0\n", r_wpid);
             ant = req;
             req = req->next;
             //printf("TASK: %d\n", reqs->task);
@@ -422,7 +432,6 @@ int main(int argc, char const *argv[]){
     }
 
     int fd, fd_reply, bytes_read, flag = 1;
-    int fd_fake;
     pid_t pid_pr;
     char *buffer = malloc(MAX);
     memset(buffer, 0, MAX);
@@ -434,19 +443,20 @@ int main(int argc, char const *argv[]){
         exit(1);
     }
 
+    
     // FD aberto para enganar o read a nunca retornar EOF ate que este fd_fake seja fechado.
-    fd_fake = open(MAIN_FIFO, O_WRONLY);
+    int fd_fake = open(MAIN_FIFO, O_WRONLY);
     if (fd_fake == -1){
         perror("Erro ao abrir o FAKE_FIFO");
         exit(1);
     }
     
-    REQUEST reqs = NULL;//, req = NULL; // ant = NULL;
+    
+    REQUEST reqs = NULL, req = NULL; // ant = NULL;
 
     while(flag){
         
         if( (bytes_read = read(fd, buffer, MAX)) > 0 ){
-            REQUEST req = reqs;
             free_concluded_request(&reqs,t);
             // Separação de possiveis varios comandos dentro duma mensagem, previamente delimitados por '\n'.
             char *message, *command;

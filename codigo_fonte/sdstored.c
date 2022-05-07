@@ -520,7 +520,7 @@ int main(int argc, char const *argv[]){
             }
             free(message);            
 
-            printf("String recebida -> %sCom tamanho: %ld\n", buffer, strlen(buffer));
+            //printf("String recebida -> %sCom tamanho: %ld\n", buffer, strlen(buffer));
             // Para limpar o buffer
             memset(buffer, 0, strlen(buffer));
             

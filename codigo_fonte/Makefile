@@ -6,6 +6,9 @@ all: sdstore sdstored
 sr: 
 	./sdstored ../etc/config.txt ../bin
 
+pr:
+	./sdstore proc-file 2 ../files/file0.txt ../output/file_out0.txt bcompress bdecompress gcompress gdecompress
+
 cl:
 	./sdstore proc-file ../files/file0.txt ../output/file_out0.txt bcompress bdecompress gcompress gdecompress
 

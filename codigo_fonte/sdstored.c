@@ -80,34 +80,51 @@ void add_request(REQUEST * r, char * request) {
 
     char *string, *found;
     string = strdup(request);
-    int i, prio = atoi(strsep(&string, ";"));
-    // Appends the request
-    while (*r) {
-        r = &(*r)->next;
-    }
-    // Cria um novo request para adicionar à fila.
-    *r = malloc(sizeof(struct requests));
-    (*r)->mem = 10;
-    (*r)->pid = 0;
+    int i;
+
+    REQUEST new = malloc(sizeof(struct requests));
+    new->mem = 10;
+    new->pid = 0;
 
     // Parses the request
-    (*r)->prio = prio;
-    (*r)->source_path = strdup(strsep(&string, ";")); //printf("entry_path:%s\n", (*r)->source_path); // para verificar o entry path.
-    (*r)->output_path = strdup(strsep(&string, ";"));
-    (*r)->transformations = malloc((*r)->mem * sizeof(char*));
+    new->prio = atoi(strsep(&string, ";"));
+    new->source_path = strdup(strsep(&string, ";")); //printf("entry_path:%s\n", new->source_path); // para verificar o entry path.
+    new->output_path = strdup(strsep(&string, ";"));
+    new->transformations = malloc(new->mem * sizeof(char*));
      
     for (i = 0; strcmp( (found = strsep(&string, ";")), "end") ; i++){
-        if (i == (*r)->mem){
-            (*r)->mem += 10;
-            (*r)->transformations = realloc((*r)->transformations, (*r)->mem);
+        if (i == new->mem){
+            new->mem += 10;
+            new->transformations = realloc(new->transformations, new->mem);
         }
-        (*r)->transformations[i] = strdup(found);
+        new->transformations[i] = strdup(found);
     }
-    (*r)->n_transformations = i;
-    (*r)->ret_fifo = strdup( strsep(&string, ";\n") );
-    (*r)->task = task_n++;
-    (*r)->next = NULL;
-    //free(string);
+    new->n_transformations = i;
+    new->ret_fifo = strdup( strsep(&string, ";\n") );
+    new->task = task_n++;
+    //new->next = NULL;
+
+    free(string); // estava em comentario.
+
+    REQUEST ant = (*r);
+    // Appends the request
+    while ( (*r) && (*r)->prio > new->prio ) {
+        ant = (*r);
+        r = &(*r)->next;
+    }
+
+    if ((*r) == NULL){
+        (*r) = new;
+        new->next = NULL;
+    }
+    else if ((*r) == ant){
+        new->next = (*r);
+        (*r) = new;
+    }
+    else{
+        new->next = (*r);
+        ant->next = new;
+    }
 }
 
 /*
@@ -518,7 +535,7 @@ int main(int argc, char const *argv[]){
                     if ( (pid_pr = fork()) == 0){
                        
                         write(fd_reply, "processing\n", 12);
-
+                        //sleep(90000); // SLEEP TEST FOR QUEUE.
                         // processar o pedido.
                         char *transfs[req->n_transformations]; // separar as tranformações
                         for(int i = 0; i < req->n_transformations; i++){

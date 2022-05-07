@@ -63,7 +63,7 @@ typedef struct transfs{
 typedef struct requests {
     
     int task;           // identificador do número da task.
-    int type;           // 1 se for do tipo status, 0 se for proc-file       
+    int prio;           // prioridade do pedido.      
     char * source_path;
     char * output_path;
     char ** transformations;    // array com as strings relativas à transformação
@@ -78,7 +78,9 @@ typedef struct requests {
 // Adiciona ao fim da lista ligada r, um request codificado pela string request.
 void add_request(REQUEST * r, char * request) {
 
-    int i;
+    char *string, *found;
+    string = strdup(request);
+    int i, prio = atoi(strsep(&string, ";"));
     // Appends the request
     while (*r) {
         r = &(*r)->next;
@@ -87,14 +89,10 @@ void add_request(REQUEST * r, char * request) {
     *r = malloc(sizeof(struct requests));
     (*r)->mem = 10;
     (*r)->pid = 0;
-    (*r)->type = 0;
 
     // Parses the request
-    char *string, *found;
-    string = strdup(request);
-    strsep(&string, ";"); // descartar número inicial que indica o tipo do request.
-    (*r)->source_path = strdup(strsep(&string, ";"));
-    //printf("entry_path:%s\n", (*r)->source_path); // para verificar o entry path.
+    (*r)->prio = prio;
+    (*r)->source_path = strdup(strsep(&string, ";")); //printf("entry_path:%s\n", (*r)->source_path); // para verificar o entry path.
     (*r)->output_path = strdup(strsep(&string, ";"));
     (*r)->transformations = malloc((*r)->mem * sizeof(char*));
      
@@ -276,11 +274,9 @@ char * return_status(REQUEST reqs, TRANSFS t) {
     // Adds information on pending tasks
     for (r = reqs; r ; r = r->next) {
 
-        snprintf(buffer, MAX, "Task #%d: ", r->task);
-        if (r->type == 0)
-            snprintf(buffer + strlen(buffer), MAX, "proc-file ");
-        else
-            snprintf(buffer + strlen(buffer), MAX, "status ");
+        snprintf(buffer, MAX, "Task #%d: proc-file %d ", r->task, r->prio);
+        //snprintf(buffer + strlen(buffer), MAX, "proc-file ");
+        
         snprintf(buffer + strlen(buffer), MAX, "%s %s ", r->source_path, r->output_path);
         for (i = 0; i<r->n_transformations; i++) {
             snprintf(buffer + strlen(buffer), MAX, "%s ", r->transformations[i]);
@@ -474,12 +470,12 @@ int main(int argc, char const *argv[]){
             message = strdup(buffer);
             while( strlen(command = strsep(&message, "\n")) > 0){
 
-                if(*command == 'n'); // comando de acordar o read.
-                else if (strcmp(command, "TERMINATE") == 0){
+                if (*command == 'n'); // comando de acordar o read.
+                else if (*command == 't'){
                     flag = 0;
                     close(fd_fake);
                 }
-                else if( *command == '1' ){ // status
+                else if ( *command == 's' ){ // status
 
                     char *string = strdup(command);
                     char *found, *stats = NULL;
@@ -501,7 +497,6 @@ int main(int argc, char const *argv[]){
                 }
                 else { // *command == '0'
 
-                    //printf("String recebida -> %s", command);
                     add_request(&reqs, command);
 
                 }

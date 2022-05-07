@@ -18,7 +18,7 @@ char* build_request(char* argv[], int argc, char* pid) {
 
     int i;
     char* buffer = malloc(MAX);
-    // Type of instruction, input, output,
+    // Type of instruction, input, output.
     snprintf(buffer, MAX, "1,%s,%s,", argv[0], argv[1]);
 
     // Loop to write the filters separated by ";"
@@ -38,11 +38,8 @@ int main(int argc, char const *argv[]){
     
     if (argc == 1) { // Caso para explicar o que fazer ao utilizador
 
-        char * buffer = malloc(MAX);
-        sprintf(buffer, "./sdstore status\n./sdstore option input-filename output-filename filter-id-1 filter-id-2 ...\n");
-        write(1, buffer, strlen(buffer));
-        free(buffer);
-        exit(1);
+        write(1, "./sdstore status\n./sdstore proc-file input-filename output-filename filter-id-1 filter-id-2 ...\n", 94);
+        return 0;
     }
     // para obter um nome para criar um pipe em que retorne a informacao vinda do servidor.
     int pid = getpid();
@@ -61,14 +58,30 @@ int main(int argc, char const *argv[]){
     char* buffer = malloc(MAX); memset(buffer, 0, MAX);
     // Envia mensagem "status" caso queira saber o status do servidor
     if ( strcmp(argv[1], "status") == 0 ){
-        snprintf(buffer, MAX, "1;%s\n", ret_fifo);
+        snprintf(buffer, MAX, "s;%s\n", ret_fifo);
     }
     // Envia mensagem "TERMINATE" para fechar o servidor
     else if( strcmp(argv[1], "TERMINATE") == 0 ){
-        snprintf(buffer, 11, "TERMINATE\n");
+        snprintf(buffer, 3, "t\n");
     }
-    else{
-        // Type of instruction, input, output,
+    // Caso com prioridade definida.
+    else if(strcmp(argv[1], "proc-file") == 0 && strlen(argv[2]) == 1 && atoi(argv[2]) >= 0 && atoi(argv[2]) <= 5){ 
+        //printf("PASSEI PELA CENA DOS ARGS\n");
+        snprintf(buffer, MAX, "%s;%s;%s;", argv[2], argv[3], argv[4]);
+        i = 5;
+
+        // Loop to write the filters separated by ";"
+        for ( ; i < argc; i++) {
+            snprintf(buffer + strlen(buffer), MAX, "%s;", argv[i]);
+            //if (i != argc - 1) snprintf(buffer + strlen(buffer), MAX, ";");
+        }
+
+        // To write the pid of the client
+        snprintf(buffer + strlen(buffer), MAX, "end;%s\n", ret_fifo);
+    }
+    // Caso com prioridade default = 0.
+    else if( strcmp(argv[1], "proc-file") == 0 ){
+        
         snprintf(buffer, MAX, "0;%s;%s;", argv[2], argv[3]);
         i = 4;
 
@@ -81,13 +94,28 @@ int main(int argc, char const *argv[]){
         // To write the pid of the client
         snprintf(buffer + strlen(buffer), MAX, "end;%s\n", ret_fifo);
     }
+    // Caso com o valor da prioridade fora dos limites.
+    else if( strcmp(argv[1], "proc-file") == 0 && strlen(argv[2]) == 1 && atoi(argv[2]) < 0 && atoi(argv[2]) > 5) {
+        write(1, "Prioridade definida tem de estar entre 0 e 5.\n", 47);
+        free(buffer);
+        unlink(ret_fifo);
+        free(ret_fifo);
+        return 0;
+    }
+    else{ // caso em que os argumentos estao mal definidos.
+        write(1, "./sdstore status\n./sdstore proc-file input-filename output-filename filter-id-1 filter-id-2 ...\n", 94);
+        free(buffer);
+        unlink(ret_fifo);
+        free(ret_fifo);
+        return 0;
+    }
 
     fd = open(MAIN_FIFO, O_WRONLY);
     write(fd, buffer, strlen(buffer));
     close(fd);
 
     // Para impedir que o cliente tente ler algo que venha do servidor que nunca virá, uma vez que é um TERMINATE.
-    if ( strcmp(buffer, "TERMINATE\n") == 0 ){
+    if ( strcmp(buffer, "t\n") == 0 ){
         free(buffer);
         unlink(ret_fifo);
         free(ret_fifo);

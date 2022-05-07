@@ -328,68 +328,92 @@ int exec_tranformation(char *transf, TRANSFS t){
 
 // executa um request
 int exec_request(TRANSFS t, int n_trnsfs, char *transfs[], char *source_path, char *output_path){
-    int pipes[n_trnsfs-1][2]; //{read,write}
-    pid_t pid;  
-    int fd_source, fd_output;
-    if((fd_source = open(source_path,O_RDONLY)) < 0){
-        perror("ERRO ao abrir fd de entrada");
-        return -1;
-    }
-    if ( (fd_output = open(output_path, O_CREAT | O_TRUNC | O_WRONLY, 0644) ) < 0){
-        printf ("outpath -> %s\n", output_path);
-        perror("ERRO ao abrir fd de saida");
-        return -1;
-    }
+    if(n_trnsfs == 1){
+        pid_t pid = fork();
+        if(pid == -1){
+            perror("ERRO no fork exec_request"); return -1;
+        }
+        else if(pid == 0){ // processo filho encarregue de fazer a trasnformação
+            int fd_source, fd_output;
+            if((fd_source = open(source_path,O_RDONLY)) < 0){
+                perror("ERRO ao abrir fd de entrada");
+                return -1;
+            }
+            if ( (fd_output = open(output_path, O_CREAT | O_TRUNC | O_WRONLY, 0644) ) < 0){
+                printf ("outpath -> %s\n", output_path);
+                perror("ERRO ao abrir fd de saida");
+                return -1;
+            }
+            
+            dup2(fd_source,STDIN_FILENO);
+            dup2(fd_output, STDOUT_FILENO);
+            exec_tranformation(transfs[0],t);
+        }
+        wait(NULL);
+    } else if(n_trnsfs > 1){
+        int pipes[n_trnsfs-1][2]; //{read,write}
+        pid_t pid;  
+        int fd_source, fd_output;
+        if((fd_source = open(source_path,O_RDONLY)) < 0){
+            perror("ERRO ao abrir fd de entrada");
+            return -1;
+        }
+        if ( (fd_output = open(output_path, O_CREAT | O_TRUNC | O_WRONLY, 0644) ) < 0){
+            printf ("outpath -> %s\n", output_path);
+            perror("ERRO ao abrir fd de saida");
+            return -1;
+        }
 
-    for(int c = 0; c < n_trnsfs; c++){
-        if(c >= 0 && c < n_trnsfs-1){
-            if(pipe(pipes[c]) == -1) return -1;
-        }
+        for(int c = 0; c < n_trnsfs; c++){
+            if(c >= 0 && c < n_trnsfs-1){
+                if(pipe(pipes[c]) == -1) return -1;
+            }
 
-        if(c == 0){ // primeira tranformação
-            pid = fork();
-            if(pid == -1) return -1;
-            else if(pid == 0){ // processo filho 
-                close(pipes[c][0]);
-                dup2(pipes[c][1],STDOUT_FILENO);
+            if(c == 0){ // primeira tranformação
+                pid = fork();
+                if(pid == -1) return -1;
+                else if(pid == 0){ // processo filho 
+                    close(pipes[c][0]);
+                    dup2(pipes[c][1],STDOUT_FILENO);
+                    close(pipes[c][1]);
+                    dup2(fd_source,STDIN_FILENO); // -> penso que seja assim
+                    exec_tranformation(transfs[c],t);
+                    _exit(-1);
+                }
                 close(pipes[c][1]);
-                dup2(fd_source,STDIN_FILENO); // -> penso que seja assim
-                exec_tranformation(transfs[c],t);
-                _exit(-1);
             }
-            close(pipes[c][1]);
-        }
-        else if(c == n_trnsfs-1){ // última transformação
-            pid = fork();
-            if(pid == -1) return -1;
-            else if(pid == 0){ // processo filho
-                close(pipes[c-1][1]);
-                dup2(pipes[c-1][0],STDIN_FILENO);
+            else if(c == n_trnsfs-1){ // última transformação
+                pid = fork();
+                if(pid == -1) return -1;
+                else if(pid == 0){ // processo filho
+                    close(pipes[c-1][1]);
+                    dup2(pipes[c-1][0],STDIN_FILENO);
+                    close(pipes[c-1][0]);
+                    dup2(fd_output,STDOUT_FILENO); //-> penso que seja assim
+                    exec_tranformation(transfs[c],t);
+                    _exit(-1);
+                }
                 close(pipes[c-1][0]);
-                dup2(fd_output,STDOUT_FILENO); //-> penso que seja assim
-                exec_tranformation(transfs[c],t);
-                _exit(-1);
             }
-            close(pipes[c-1][0]);
-        }
-        else{ // tranformações intermédias
-            pid = fork();
-            if(pid == -1) return -1;
-            else if(pid == 0){ // processo filho
-                dup2(pipes[c-1][0],STDIN_FILENO);
+            else{ // tranformações intermédias
+                pid = fork();
+                if(pid == -1) return -1;
+                else if(pid == 0){ // processo filho
+                    dup2(pipes[c-1][0],STDIN_FILENO);
+                    close(pipes[c-1][0]);
+                    dup2(pipes[c][1],STDOUT_FILENO);
+                    close(pipes[c][1]);
+                    exec_tranformation(transfs[c],t);
+                    _exit(-1);
+                }
                 close(pipes[c-1][0]);
-                dup2(pipes[c][1],STDOUT_FILENO);
                 close(pipes[c][1]);
-                exec_tranformation(transfs[c],t);
-                _exit(-1);
             }
-            close(pipes[c-1][0]);
-            close(pipes[c][1]);
         }
+        for(int i = 0; i < n_trnsfs; i++) wait(NULL);
+        close(fd_source);
+        close(fd_output);
     }
-    for(int i = 0; i < n_trnsfs; i++) wait(NULL);
-    close(fd_source);
-    close(fd_output);
     return 0;
 }
 
@@ -474,7 +498,6 @@ int main(int argc, char const *argv[]){
     
     
     REQUEST reqs = NULL, req = NULL;
-
     while(flag){
         
         if( (bytes_read = read(fd, buffer, MAX)) > 0 ){
@@ -533,7 +556,6 @@ int main(int argc, char const *argv[]){
                 if( (req->pid == 0 || req->pid == -1) && verify(t, req) ){ // verifica se ja foi atendido o pedido e se é valido tendo em conta as transfs maximas.
                     alter_usage(t, req, 1);
                     if ( (pid_pr = fork()) == 0){
-                       
                         write(fd_reply, "processing\n", 12);
                         //sleep(90000); // SLEEP TEST FOR QUEUE.
                         // processar o pedido.
@@ -548,7 +570,17 @@ int main(int argc, char const *argv[]){
                         }
 
                         //printf("\n[DEBUG] Acabou de processar o request %d!!!\n\n", req->task);
-                        write(fd_reply, "concluded\n", 11);
+                        //write(fd_reply, "concluded\n", 11);
+                        int fd_in,fd_out;
+                        if((fd_in = open(req->source_path,O_RDONLY)) < 0){
+                            perror("ERRO a abrir o fd_in"); return -1;
+                        }
+                        if((fd_out = open(req->output_path,O_RDONLY)) < 0){
+                            perror("ERRO a abrir o fd_in"); return -1;
+                        }
+                        snprintf(buffer,MAX,"concluded (bytes-input: %ld, bytes-output: %ld)\n",lseek(fd_in,0,SEEK_END),lseek(fd_out,0,SEEK_END));
+                        close(fd_in); close(fd_out);
+                        write(fd_reply,buffer,strlen(buffer));
                         _exit(0);
                     }
                     close(fd_reply);

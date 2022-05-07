@@ -95,7 +95,7 @@ void add_request(REQUEST * r, char * request) {
     for (i = 0; strcmp( (found = strsep(&string, ";")), "end") ; i++){
         if (i == new->mem){
             new->mem += 10;
-            new->transformations = realloc(new->transformations, new->mem);
+            new->transformations = realloc(new->transformations, new->mem * sizeof(char*));
         }
         new->transformations[i] = strdup(found);
     }
@@ -520,7 +520,7 @@ int main(int argc, char const *argv[]){
             }
             free(message);            
 
-            //printf("String recebida -> %sCom tamanho: %ld\n", buffer, strlen(buffer));
+            printf("String recebida -> %sCom tamanho: %ld\n", buffer, strlen(buffer));
             // Para limpar o buffer
             memset(buffer, 0, strlen(buffer));
             

@@ -11,7 +11,7 @@
 // CLIENTE
 
 #define MAX 1024
-#define MAIN_FIFO "../tmp/main_fifo"
+#define MAIN_FIFO "tmp/main_fifo"
 
 // INUTILIZADO
 char* build_request(char* argv[], int argc, char* pid) {
@@ -44,7 +44,7 @@ int main(int argc, char const *argv[]){
     // para obter um nome para criar um pipe em que retorne a informacao vinda do servidor.
     int pid = getpid();
     char *ret_fifo = malloc(MAX);
-    snprintf(ret_fifo, MAX, "../tmp/fifo%d", pid);
+    snprintf(ret_fifo, MAX, "tmp/fifo%d", pid);
 
     // Criar o Pipe de retorno de informaçao vindo do server.
     int mkr = mkfifo(ret_fifo, 0644);

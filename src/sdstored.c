@@ -2,7 +2,7 @@
 // SERVIDOR
 
 #define MAX 2048
-#define MAIN_FIFO "../tmp/main_fifo"
+#define MAIN_FIFO "tmp/main_fifo"
 
 int task_n = 1;
 int flag = 1;

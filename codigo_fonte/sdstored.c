@@ -1,19 +1,16 @@
-#include <sys/types.h>
-#include <sys/stat.h>
-#include <fcntl.h>
-#include <unistd.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <unistd.h>
-#include <sys/wait.h>
-#include <string.h>
-
+#include "sdstored.h"
 // SERVIDOR
 
 #define MAX 2048
 #define MAIN_FIFO "../tmp/main_fifo"
 
 int task_n = 1;
+int flag = 1;
+
+void sigterm_handler(int signum){
+    printf("Terminação graciosa\n");
+    flag = 0;
+}
 
 // Funcao auxiliar que lê uma linha de um ficheiro (le ate ao carater '\n').
 ssize_t readln(int fd, char *line, size_t size){
@@ -45,35 +42,7 @@ ssize_t readln(int fd, char *line, size_t size){
 	return i;
 }
 
-// STRUCTS 
-typedef struct transf{
-    char* name;
-    char* path;
-    int running;
-    int max;
-} *TRANSF;
 
-typedef struct transfs{
-    TRANSF* transformations;
-    int atual;
-    int max;
-} *TRANSFS;
-
-// Estrutura de dados que serve como Queue de pedidos enviados por clientes.
-typedef struct requests {
-    
-    int task;           // identificador do número da task.
-    int prio;           // prioridade do pedido.      
-    char * source_path;
-    char * output_path;
-    char ** transformations;    // array com as strings relativas à transformação
-    int n_transformations;       // numero de elementos do array 'transformations'
-    int mem;            // indica a memoria alocada no array 'transformations'
-    char * ret_fifo;    // string que indica o pipe que devem ser enviadas mensagens de reply ao cliente
-    pid_t pid;          // 0 se ainda nem foi verificado para processar, -1 se ja foi verificado para processar, >0 se esta em processamento com o numero do pid que o esta a processar.
-    struct requests * next;
-
-} *REQUEST;
 
 // Adiciona ao fim da lista ligada r, um request codificado pela string request.
 void add_request(REQUEST * r, char * request) {
@@ -459,6 +428,10 @@ int main(int argc, char const *argv[]){
         return -1;
     }
 
+    if(signal(SIGTERM,sigterm_handler) == SIG_ERR){
+        perror("ERRO a registar o handler do SIGTERM");
+    }
+
     TRANSFS t = read_config_file( strdup(argv[1]), strdup(argv[2]) );
 
 
@@ -468,7 +441,7 @@ int main(int argc, char const *argv[]){
         return -1;
     }
 
-    int fd, fd_reply, bytes_read, flag = 1;
+    int fd, fd_reply, bytes_read;
     pid_t pid_pr;
     char *buffer = malloc(MAX);
     memset(buffer, 0, MAX);

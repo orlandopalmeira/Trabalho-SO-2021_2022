@@ -498,9 +498,9 @@ int main(int argc, char const *argv[]){
     
     
     REQUEST reqs = NULL, req = NULL;
-    while(flag){
+    while(flag || reqs){
         
-        if( (bytes_read = read(fd, buffer, MAX)) > 0 ){
+        if( flag && (bytes_read = read(fd, buffer, MAX)) > 0 ){
 
             // Libertacao de pedidos ja atendidos.
             free_concluded_request(&reqs,t);
@@ -542,10 +542,13 @@ int main(int argc, char const *argv[]){
                 }
             }
             free(message);            
-
             //printf("String recebida -> %sCom tamanho: %ld\n", buffer, strlen(buffer));
-            // Para limpar o buffer
             memset(buffer, 0, strlen(buffer));
+        }
+        else{
+            // Libertacao de pedidos ja atendidos.
+            free_concluded_request(&reqs,t);
+        }
             
             // Atendimento dos requests
             req = reqs; // para percorrer a lista sem alterar o apontador de reqs
@@ -597,9 +600,7 @@ int main(int argc, char const *argv[]){
                 req = req->next;
 
             }
-            
-        }
-    
+
     }
     
     free(buffer);

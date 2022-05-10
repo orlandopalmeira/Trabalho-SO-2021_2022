@@ -37,4 +37,4 @@ status:
 	./bin/sdstore status
 
 clean:
-	rm obj/*.o tmp/* bin/sdstore bin/sdstored
+	rm obj/*.o tmp/fifo* tmp/main_fifo bin/sdstore bin/sdstored output/*

@@ -400,7 +400,6 @@ void free_concluded_request(REQUEST *reqs, TRANSFS t){
             //printf("[DEBUG] WAITPID RETORNOU [%d] no caso em que devia retornar 0\n", r_wpid);
             ant = req;
             req = req->next;
-            //printf("TASK: %d\n", reqs->task);
         }
         // caso em que o pedido ja foi atendido.
         else {
@@ -428,6 +427,8 @@ int main(int argc, char const *argv[]){
         return -1;
     }
 
+    //printf("[DEBUG] PID DO SERVER: %d\n", getpid());
+
     if(signal(SIGTERM,sigterm_handler) == SIG_ERR){
         perror("ERRO a registar o handler do SIGTERM");
     }
@@ -441,11 +442,29 @@ int main(int argc, char const *argv[]){
         return -1;
     }
 
-    int fd, fd_reply, bytes_read;
+    int fd = 1, fd_reply, bytes_read;
     pid_t pid_pr;
     char *buffer = malloc(MAX);
     memset(buffer, 0, MAX);
+
     
+    // FD aberto para enganar o read a nunca retornar EOF ate que este fd_fake seja fechado.
+    int pid_fake;
+    if ( (pid_fake = fork() ) == 0){
+        int fd_fake = open(MAIN_FIFO, O_WRONLY);
+        if (fd_fake == -1){
+            perror("Erro ao abrir o FAKE_FIFO");
+            exit(1);
+        }
+        int c = 1;
+        while(c > 0 && flag){
+            sleep(4);
+            c = write(fd_fake, "n\n", 3); // para ir acordando o read.
+        }
+        close(fd_fake);
+        _exit(0);
+    }
+
     // Abrir o MAIN_FIFO
     fd = open(MAIN_FIFO, O_RDONLY);
     if (fd == -1){
@@ -454,20 +473,6 @@ int main(int argc, char const *argv[]){
     }
 
     
-    // FD aberto para enganar o read a nunca retornar EOF ate que este fd_fake seja fechado.
-    int fd_fake = open(MAIN_FIFO, O_WRONLY);
-    if (fd_fake == -1){
-        perror("Erro ao abrir o FAKE_FIFO");
-        exit(1);
-    }
-    if (fork() == 0){
-        int c = 1;
-        while(c){
-            sleep(10);
-            c = write(fd_fake, "n\n", 3); // para ir acordando o read.
-        }
-        _exit(0);
-    }
     
     
     REQUEST reqs = NULL, req = NULL;
@@ -486,7 +491,7 @@ int main(int argc, char const *argv[]){
                 if (*command == 'n'); // comando de acordar o read.
                 else if (*command == 't'){
                     flag = 0;
-                    close(fd_fake);
+                    //close(fd_fake);
                 }
                 else if ( *command == 's' ){ // status
 
@@ -495,8 +500,7 @@ int main(int argc, char const *argv[]){
                     strsep(&string, ";");   // descarta o '1' que é indicativo de ser uma instruçao status.
                     found = strsep(&string, ";");
                     stats = return_status(reqs, t);
-                    //printf("%s\n", stats);
-                    //printf ("A ABRIR O FD_REPLY PRA ESCRITA\n");
+
                     fd_reply = open(found, O_WRONLY);
                     if (fd_reply == -1){
                         perror("Error opening fd_reply");
@@ -533,7 +537,9 @@ int main(int argc, char const *argv[]){
                     alter_usage(t, req, 1);
                     if ( (pid_pr = fork()) == 0){
                         write(fd_reply, "processing\n", 12);
-                        //sleep(90000); // SLEEP TEST FOR QUEUE.
+
+                        //sleep(10); // SLEEP TEST FOR QUEUE.
+
                         // processar o pedido.
                         char *transfs[req->n_transformations]; // separar as tranformações
                         for(int i = 0; i < req->n_transformations; i++){
@@ -541,12 +547,11 @@ int main(int argc, char const *argv[]){
                         }                    
                         
                         if(exec_request(t,req->n_transformations,transfs,req->source_path,req->output_path) < 0){
-                            // ????FAZER ALGUMA CENA CASO O exec_request DER ERRO??????????
                             printf("Nao foi possivel executar o request\n");
                         }
 
                         //printf("\n[DEBUG] Acabou de processar o request %d!!!\n\n", req->task);
-                        //write(fd_reply, "concluded\n", 11);
+
                         int fd_in,fd_out;
                         if((fd_in = open(req->source_path,O_RDONLY)) < 0){
                             perror("ERRO a abrir o fd_in"); return -1;
@@ -576,6 +581,7 @@ int main(int argc, char const *argv[]){
 
     }
     
+    kill(pid_fake, SIGKILL);
     free(buffer);
     freeTransfs(t);
     unlink (MAIN_FIFO);

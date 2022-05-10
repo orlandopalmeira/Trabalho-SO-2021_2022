@@ -13,7 +13,7 @@
 #define MAX 1024
 #define MAIN_FIFO "tmp/main_fifo"
 
-// INUTILIZADO
+// INUTILIZADO TALVEZ PARA REMOVER
 char* build_request(char* argv[], int argc, char* pid) {
 
     int i;

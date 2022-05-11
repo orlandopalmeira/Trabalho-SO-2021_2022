@@ -292,7 +292,6 @@ char *path_executable_tranformation(char *transf_name,TRANSFS trfs){
 int exec_tranformation(char *transf, TRANSFS t){
     char *tr_exec_path = path_executable_tranformation(transf,t);
     execl(tr_exec_path,tr_exec_path,NULL);
-    _exit(-1);
     return -1;
 }
 
@@ -315,11 +314,13 @@ int exec_request(TRANSFS t, int n_trnsfs, char *transfs[], char *source_path, ch
                 return -1;
             }
             
-            dup2(fd_source,STDIN_FILENO);
+            dup2(fd_source, STDIN_FILENO);
             dup2(fd_output, STDOUT_FILENO);
+            
             exec_tranformation(transfs[0],t);
+            _exit(-1);
         }
-        wait(NULL);
+        waitpid(pid,NULL,0);
     }
     else if(n_trnsfs > 1){
         int pipes[n_trnsfs-1][2]; //{read,write}

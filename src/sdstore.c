@@ -13,7 +13,7 @@
 #define MAX 1024
 #define MAIN_FIFO "tmp/main_fifo"
 
-// INUTILIZADO TALVEZ PARA REMOVER
+// INUTILIZADO. TALVEZ PARA REMOVER. !!!
 char* build_request(char* argv[], int argc, char* pid) {
 
     int i;
@@ -66,7 +66,7 @@ int main(int argc, char const *argv[]){
     }
     // Caso com prioridade definida.
     else if(strcmp(argv[1], "proc-file") == 0 && strlen(argv[2]) == 1 && atoi(argv[2]) >= 0 && atoi(argv[2]) <= 5){
-        //printf("PASSEI PELA PARTE DE PRIOS\n");
+        //printf("PASSOU PELA PARTE DE PRIOS\n");
         snprintf(buffer, MAX, "%s;%s;%s;", argv[2], argv[3], argv[4]);
         i = 5;
 
@@ -132,7 +132,7 @@ int main(int argc, char const *argv[]){
     }
     memset(buffer, 0, MAX); // talvez em vez de MAX possa usar strlen(buffer);
     
-    // Escreve o que vier escrito do servidor.
+    // Escreve o que vier do servidor.
     int bytes_read, fd_fake = 0;
     while( (bytes_read = read(fd, buffer, MAX)) > 0){
         if(strcmp(buffer, "pending\n") == 0){

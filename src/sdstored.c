@@ -57,7 +57,7 @@ void add_request(REQUEST * r, char * request) {
 
     // Parses the request
     new->prio = atoi(strsep(&string, ";"));
-    new->source_path = strdup(strsep(&string, ";")); //printf("entry_path:%s\n", new->source_path); // para verificar o entry path.
+    new->source_path = strdup(strsep(&string, ";"));
     new->output_path = strdup(strsep(&string, ";"));
     new->transformations = malloc(new->mem * sizeof(char*));
      
@@ -73,7 +73,7 @@ void add_request(REQUEST * r, char * request) {
     new->task = task_n++;
     //new->next = NULL;
 
-    free(string); // estava em comentario.
+    free(string);
 
     REQUEST ant = (*r);
     // Appends the request
@@ -96,16 +96,6 @@ void add_request(REQUEST * r, char * request) {
     }
 }
 
-/*
-// FUNCAO INACABADA DE ADICIONAR UM NODO DE UM REQUEST A UM APONTADOR DE REQUEST
-void add(REQUEST * r, REQUEST rp){
-    int i;
-    // Appends the request
-    while (*r) {
-        r = &(*r)->next;
-    }
-}
-*/
 
 void free_request(REQUEST r) {
 
@@ -255,28 +245,29 @@ TRANSFS read_config_file(char * config_file, char * path_to_execs){
 char * return_status(REQUEST reqs, TRANSFS t) {
 
     int i;
-    char * buffer = malloc(MAX);
+    char* res = malloc(MAX);
+    memset(res, 0, MAX);
     REQUEST r;
 
     // Adds information on pending tasks
     for (r = reqs; r ; r = r->next) {
 
-        snprintf(buffer, MAX, "Task #%d: proc-file %d ", r->task, r->prio);
+        snprintf(res + strlen(res), MAX, "Task #%d: proc-file %d ", r->task, r->prio);
         //snprintf(buffer + strlen(buffer), MAX, "proc-file ");
         
-        snprintf(buffer + strlen(buffer), MAX, "%s %s ", r->source_path, r->output_path);
+        snprintf(res + strlen(res), MAX, "%s %s ", r->source_path, r->output_path);
         for (i = 0; i<r->n_transformations; i++) {
-            snprintf(buffer + strlen(buffer), MAX, "%s ", r->transformations[i]);
+            snprintf(res + strlen(res), MAX, "%s ", r->transformations[i]);
         }
-        snprintf(buffer + strlen(buffer), MAX, "\n");
+        snprintf(res + strlen(res), MAX, "\n");
     }
 
     // Adds information on usage of the transformations
     for (i = 0; i < t -> atual; i++){
-        snprintf(buffer + strlen(buffer), MAX, "transf %s: %d/%d (running/max)\n", t->transformations[i]->name, t->transformations[i]->running, t->transformations[i]->max);
+        snprintf(res + strlen(res), MAX, "transf %s: %d/%d (running/max)\n", t->transformations[i]->name, t->transformations[i]->running, t->transformations[i]->max);
     }
 
-    return buffer;
+    return res;
 }
 
 // vai as transfs buscar a path do executável de uma certa tranformação
@@ -297,13 +288,13 @@ int exec_tranformation(char *transf, TRANSFS t){
 
 // executa um request
 int exec_request(TRANSFS t, int n_trnsfs, char *transfs[], char *source_path, char *output_path){
+    int fd_source, fd_output;
     if(n_trnsfs == 1){
         pid_t pid = fork();
         if(pid == -1){
             perror("ERRO no fork exec_request"); return -1;
         }
         else if(pid == 0){ // processo filho encarregue de fazer a trasnformação
-            int fd_source, fd_output;
             if((fd_source = open(source_path,O_RDONLY)) < 0){
                 perror("ERRO ao abrir fd de entrada");
                 return -1;
@@ -324,8 +315,7 @@ int exec_request(TRANSFS t, int n_trnsfs, char *transfs[], char *source_path, ch
     }
     else if(n_trnsfs > 1){
         int pipes[n_trnsfs-1][2]; //{read,write}
-        pid_t pid;  
-        int fd_source, fd_output;
+        pid_t pid;
         if((fd_source = open(source_path,O_RDONLY)) < 0){
             perror("ERRO ao abrir fd de entrada");
             return -1;
@@ -383,9 +373,11 @@ int exec_request(TRANSFS t, int n_trnsfs, char *transfs[], char *source_path, ch
             }
         }
         for(int i = 0; i < n_trnsfs; i++) wait(NULL);
-        close(fd_source);
-        close(fd_output);
     }
+
+    close(fd_source);
+    close(fd_output);
+
     return 0;
 }
 
@@ -451,7 +443,7 @@ int main(int argc, char const *argv[]){
     memset(buffer, 0, MAX);
 
     
-    // FD aberto para enganar o read a nunca retornar EOF ate que este fd_fake seja fechado.
+    // FD aberto para enganar o read a nunca retornar EOF ate que este fd_fake seja fechado e para mandar mensagens de desbloqueio do read.
     int pid_fake;
     if ( (pid_fake = fork() ) == 0){
         int fd_fake = open(MAIN_FIFO, O_WRONLY);
@@ -461,7 +453,7 @@ int main(int argc, char const *argv[]){
         }
         int c = 1;
         while(c > 0 && flag){
-            sleep(4);
+            sleep(5);
             c = write(fd_fake, "n\n", 3); // para ir acordando o read.
         }
         close(fd_fake);
@@ -500,7 +492,7 @@ int main(int argc, char const *argv[]){
 
                     char *string = strdup(command);
                     char *found, *stats = NULL;
-                    strsep(&string, ";");   // descarta o '1' que é indicativo de ser uma instruçao status.
+                    strsep(&string, ";");   // descarta o 's' que é indicativo de ser uma instruçao status.
                     found = strsep(&string, ";");
                     stats = return_status(reqs, t);
 
@@ -521,8 +513,8 @@ int main(int argc, char const *argv[]){
 
                 }
             }
-            free(message);            
             //printf("String recebida -> %sCom tamanho: %ld\n", buffer, strlen(buffer));
+            free(message);
             memset(buffer, 0, strlen(buffer));
         }
         else{
@@ -541,7 +533,7 @@ int main(int argc, char const *argv[]){
                     if ( (pid_pr = fork()) == 0){
                         write(fd_reply, "processing\n", 12);
 
-                        //sleep(10); // SLEEP TEST FOR QUEUE.
+                        //sleep(500); // SLEEP TEST FOR QUEUE.
 
                         // processar o pedido.
                         char *transfs[req->n_transformations]; // separar as tranformações

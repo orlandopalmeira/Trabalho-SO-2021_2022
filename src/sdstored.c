@@ -247,6 +247,7 @@ TRANSFS read_config_file(char * config_file, char * path_to_execs){
 
     free(config_file); // faço free dos argumentos pq sao strdup'ed no main.
     free(path_to_execs);
+    close(fd);
     return transformations;
 }
 
@@ -319,7 +320,8 @@ int exec_request(TRANSFS t, int n_trnsfs, char *transfs[], char *source_path, ch
             exec_tranformation(transfs[0],t);
         }
         wait(NULL);
-    } else if(n_trnsfs > 1){
+    }
+    else if(n_trnsfs > 1){
         int pipes[n_trnsfs-1][2]; //{read,write}
         pid_t pid;  
         int fd_source, fd_output;
@@ -427,7 +429,7 @@ int main(int argc, char const *argv[]){
         return -1;
     }
 
-    //printf("[DEBUG] PID DO SERVER: %d\n", getpid());
+    printf("[DEBUG] PID DO SERVER: %d\n", getpid());
 
     if(signal(SIGTERM,sigterm_handler) == SIG_ERR){
         perror("ERRO a registar o handler do SIGTERM");
@@ -581,6 +583,7 @@ int main(int argc, char const *argv[]){
 
     }
     
+    close(fd);
     kill(pid_fake, SIGKILL);
     free(buffer);
     freeTransfs(t);

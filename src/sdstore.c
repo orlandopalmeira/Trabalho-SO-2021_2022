@@ -65,8 +65,8 @@ int main(int argc, char const *argv[]){
         snprintf(buffer, 3, "t\n");
     }
     // Caso com prioridade definida.
-    else if(strcmp(argv[1], "proc-file") == 0 && strlen(argv[2]) == 1 && atoi(argv[2]) >= 0 && atoi(argv[2]) <= 5){ 
-        //printf("PASSEI PELA CENA DOS ARGS\n");
+    else if(strcmp(argv[1], "proc-file") == 0 && strlen(argv[2]) == 1 && atoi(argv[2]) >= 0 && atoi(argv[2]) <= 5){
+        //printf("PASSEI PELA PARTE DE PRIOS\n");
         snprintf(buffer, MAX, "%s;%s;%s;", argv[2], argv[3], argv[4]);
         i = 5;
 
@@ -79,9 +79,16 @@ int main(int argc, char const *argv[]){
         // To write the pid of the client
         snprintf(buffer + strlen(buffer), MAX, "end;%s\n", ret_fifo);
     }
+    // Caso com o valor da prioridade fora dos limites.
+    else if( strcmp(argv[1], "proc-file") == 0 && strlen(argv[2]) == 1 && (atoi(argv[2]) < 0 || atoi(argv[2]) > 5) ){
+        write(1, "Prioridade definida tem de estar entre 0 e 5.\n", 47);
+        free(buffer);
+        unlink(ret_fifo);
+        free(ret_fifo);
+        return 0;
+    }
     // Caso com prioridade default = 0.
     else if( strcmp(argv[1], "proc-file") == 0 ){
-        
         snprintf(buffer, MAX, "0;%s;%s;", argv[2], argv[3]);
         i = 4;
 
@@ -94,14 +101,7 @@ int main(int argc, char const *argv[]){
         // To write the pid of the client
         snprintf(buffer + strlen(buffer), MAX, "end;%s\n", ret_fifo);
     }
-    // Caso com o valor da prioridade fora dos limites.
-    else if( strcmp(argv[1], "proc-file") == 0 && strlen(argv[2]) == 1 && atoi(argv[2]) < 0 && atoi(argv[2]) > 5) {
-        write(1, "Prioridade definida tem de estar entre 0 e 5.\n", 47);
-        free(buffer);
-        unlink(ret_fifo);
-        free(ret_fifo);
-        return 0;
-    }
+    
     else{ // caso em que os argumentos estao mal definidos.
         write(1, "./sdstore status\n./sdstore proc-file input-filename output-filename filter-id-1 filter-id-2 ...\n", 94);
         free(buffer);

@@ -138,7 +138,7 @@ int main(int argc, char const *argv[]){
         if(strcmp(buffer, "pending\n") == 0){
             fd_fake = open(ret_fifo, O_WRONLY); // para impedir que seja terminada precocemente a leitura do ret_fifo.
         }
-        if(fd_fake != 0 && strcmp(buffer, "concluded\n") == 0){
+        if(fd_fake != 0 && strncmp(buffer, "concluded",9) == 0){
             close(fd_fake);
         }
         write(1, buffer, bytes_read);

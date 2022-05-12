@@ -136,6 +136,26 @@ TRANSFS init_transfs (){
     return t;
 }
 
+// Clona uma struct TRANSF
+TRANSF clone_transf (TRANSF tr){
+    TRANSF t = init_transf(tr->name, tr->path, tr->max);
+    t->running = tr->running;
+
+    return t;
+}
+
+// Clona uma struct TRANSFS
+TRANSFS clone_transfs (TRANSFS tr){
+    int i;
+    TRANSFS t = init_transfs();
+    for (i=0; i<tr->atual; i++){
+        t->transformations[i] = clone_transf(tr->transformations[i]);
+    }
+    t->atual = i;
+
+    return t;
+}
+
 // Liberta uma struct TRANSFS
 void freeTransfs (TRANSFS t){
     for (int i=0; i<t->atual; i++)
@@ -157,17 +177,20 @@ void add_transf(TRANSFS t, char *name, int max, char * transformations_folder) {
 }
 
 // Retorna 1 se for valido, 0 caso contrario
-int verify(TRANSFS tr, REQUEST req) {
+int verify(TRANSFS t, REQUEST req) {
 
     int i, j, ret = 1;
+    TRANSFS tr = clone_transfs(t);
     for (i = 0; i < req->n_transformations; i++){
         for (j = 0; j < tr->atual && ret; j++){
             if (strcmp(tr->transformations[j]->name, req->transformations[i]) == 0 && tr->transformations[j]->running == tr->transformations[j]->max ){
                 ret = 0;
                 break;
             }
+            tr->transformations[j]->running++;
         }
-    } 
+    }
+    freeTransfs(tr);
     return ret;
 }
 

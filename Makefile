@@ -25,7 +25,7 @@ pr2:
 	./bin/sdstore proc-file 2 files/file0.txt output/file_out0.txt bcompress
 
 pr3:
-	./bin/sdstore proc-file 3 files/file0.txt output/file_out0.txt gcompress
+	./bin/sdstore proc-file 3 files/file0.txt output/file_out0.txt gcompress gcompress gcompress gcompress
 
 pr4:
 	./bin/sdstore proc-file 4 files/file0.txt output/file_out0.txt bdecompress

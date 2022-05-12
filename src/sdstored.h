@@ -10,13 +10,13 @@
 #ifndef SDTORED_H
 #define SDTORED_H
 
-// STRUCTS 
+// Structs com informaçao sobre as transformaçoes. 
 typedef struct transf{
     char* name;
     char* path;
     int running;
     int max;
-} *TRANSF;
+} *TRANSF; 
 
 typedef struct transfs{
     TRANSF* transformations;

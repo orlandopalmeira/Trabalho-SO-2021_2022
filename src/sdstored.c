@@ -181,13 +181,15 @@ int verify(TRANSFS t, REQUEST req) {
 
     int i, j, ret = 1;
     TRANSFS tr = clone_transfs(t);
-    for (i = 0; i < req->n_transformations; i++){
-        for (j = 0; j < tr->atual && ret; j++){
-            if (strcmp(tr->transformations[j]->name, req->transformations[i]) == 0 && tr->transformations[j]->running == tr->transformations[j]->max ){
-                ret = 0;
+    for (i = 0; i < req->n_transformations && ret; i++){
+        for (j = 0; j < tr->atual ; j++){
+            if (strcmp(tr->transformations[j]->name, req->transformations[i]) == 0){
+                tr->transformations[j]->running++;
+                if (tr->transformations[j]->running > tr->transformations[j]->max ){
+                    ret = 0;
+                }
                 break;
             }
-            tr->transformations[j]->running++;
         }
     }
     freeTransfs(tr);
@@ -437,6 +439,83 @@ void free_concluded_request(REQUEST *reqs, TRANSFS t){
     }
 }
 
+// Verifica se é sequer possivel fazer um request tendo em conta as transformações máximas permitidas pelo server.
+int isPossible(char* buf, TRANSFS t){
+    char *string, *found;
+    string = strdup(buf);
+    strsep(&string, ";\n");
+    int i, ret = 1;
+    int bcompress = 0, bdecompress = 0, gcompress = 0, gdecompress = 0, encrypt = 0, decrypt = 0, nop = 0;
+
+    while (strcmp((found = strsep(&string, ";\n")), "end") != 0 ){
+
+        if ( strcmp(found, "bcompress") == 0){
+            bcompress++;
+        }
+        else if ( strcmp(found, "bdecompress") == 0){
+            bdecompress++;
+        }
+        else if ( strcmp(found, "gcompress") == 0){
+            gcompress++;
+        }
+        else if ( strcmp(found, "gdecompress") == 0){
+            gdecompress++;
+        }
+        else if ( strcmp(found, "encrypt") == 0){
+            encrypt++;
+        }
+        else if ( strcmp(found, "decrypt") == 0){
+            decrypt++;
+        }
+        else if ( strcmp(found, "nop") == 0){
+            nop++;
+        }
+
+    }
+    
+
+    for (i=0; i < t->atual && ret; i++){
+
+        if(strcmp(t->transformations[i]->name, "bcompress") == 0){
+            if (bcompress > t->transformations[i]->max){
+                ret = 0;
+            }
+        }
+        else if(strcmp(t->transformations[i]->name, "bdecompress") == 0){
+            if (bdecompress > t->transformations[i]->max){
+                ret = 0;
+            }
+        }
+        else if(strcmp(t->transformations[i]->name, "gcompress") == 0){
+            if (gcompress > t->transformations[i]->max){
+                ret = 0;
+            }
+        }
+        else if(strcmp(t->transformations[i]->name, "gdecompress") == 0){
+            if (gdecompress > t->transformations[i]->max){
+                ret = 0;
+            }
+        }
+        else if(strcmp(t->transformations[i]->name, "encrypt") == 0){
+            if (encrypt > t->transformations[i]->max){
+                ret = 0;
+            }
+        }
+        else if(strcmp(t->transformations[i]->name, "decrypt") == 0){
+            if (decrypt > t->transformations[i]->max){
+                ret = 0;
+            }
+        }
+        else if(strcmp(t->transformations[i]->name, "nop") == 0){
+            if (nop > t->transformations[i]->max){
+                ret = 0;
+            }
+        }
+    }
+    //free(string);
+    return ret;
+}
+
 
 int main(int argc, char const *argv[]){
     
@@ -489,10 +568,8 @@ int main(int argc, char const *argv[]){
         perror("Erro ao abrir o MAIN_FIFO");
         exit(1);
     }
-
     
-    
-    
+    //char *string, *found;
     REQUEST reqs = NULL, req = NULL;
     while(flag || reqs){
         
@@ -530,7 +607,23 @@ int main(int argc, char const *argv[]){
                     free(stats);
 
                 }
-                else { // *command == '0'
+                else if(!isPossible(command, t)){ // é um pedido impossivel tendo em conta o maximo permitido pelo server.
+
+                    char *string = strdup(command);
+                    char *found;
+                    while( strcmp((found = strsep(&string, ";\n")), "end") != 0 );
+                    found = strsep(&string, ";\n"); // ret_fifo
+                    fd_reply = open(found, O_WRONLY);
+                    if (fd_reply == -1){
+                        perror("Error opening fd_reply");
+                        exit(1);
+                    }
+                    write(fd_reply, "Pedido rejeitado. Limites maximos possiveis excedidos.\n", 56);
+                    close(fd_reply);
+
+                    free(string);
+                }
+                else { // *command == '(num)'
 
                     add_request(&reqs, command);
 

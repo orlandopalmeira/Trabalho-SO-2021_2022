@@ -77,7 +77,7 @@ void add_request(REQUEST * r, char * request) {
 
     REQUEST ant = (*r);
     // Appends the request
-    while ( (*r) && (*r)->prio > new->prio ) {
+    while ( (*r) && (*r)->prio >= new->prio ) {
         ant = (*r);
         r = &(*r)->next;
     }

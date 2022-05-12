@@ -18,8 +18,20 @@ obj/sdstore.o: src/sdstore.c
 sr: 
 	./bin/sdstored etc/sdstored.conf bin/sdstore-transformations
 
-pr:
-	./bin/sdstore proc-file 2 files/file0.txt output/file_out0.txt bcompress bdecompress gcompress gdecompress
+pr1:
+	./bin/sdstore proc-file 1 files/file0.txt output/file_out0.txt nop
+
+pr2:
+	./bin/sdstore proc-file 2 files/file0.txt output/file_out0.txt bcompress
+
+pr3:
+	./bin/sdstore proc-file 3 files/file0.txt output/file_out0.txt gcompress
+
+pr4:
+	./bin/sdstore proc-file 4 files/file0.txt output/file_out0.txt bdecompress
+
+pr5:
+	./bin/sdstore proc-file 5 files/file0.txt output/file_out0.txt gcompress bdecompress
 
 cl:
 	./bin/sdstore proc-file files/file0.txt output/file_out0.txt bcompress bdecompress gcompress gdecompress

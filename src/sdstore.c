@@ -38,9 +38,9 @@ char* build_request(char* argv[], int argc, char* pid) {
 
 int main(int argc, char const *argv[]){
     
-    if (argc == 1) { // Caso para explicar o que fazer ao utilizador
+    if (argc == 1) { // Caso para explicar o que fazer ao utilizador.
 
-        write(1, "./sdstore status\n./sdstore proc-file input-filename output-filename filter-id-1 filter-id-2 ...\n", 94);
+        write(1, "Executável precisa de argumentos!\nInformação sobre o servidor: (executavél) status\nEnvio de processamento de ficheiro: (executavél) proc-file input-filename output-filename filter-id-1 filter-id-2 ...\nEnvio de processamento de ficheiro com prioridade: (executavél) proc-file -p <priority> input-filename output-filename filter-id-1 filter-id-2 ...\n", 355);
         return 0;
     }
     // para obter um nome para criar um pipe em que retorne a informacao vinda do servidor.
@@ -67,10 +67,10 @@ int main(int argc, char const *argv[]){
         snprintf(buffer, 3, "t\n");
     }
     // Caso com prioridade definida.
-    else if(strcmp(argv[1], "proc-file") == 0 && strlen(argv[2]) == 1 && atoi(argv[2]) >= 0 && atoi(argv[2]) <= 5){
+    else if(strcmp(argv[1], "proc-file") == 0 && strcmp(argv[2], "-p") == 0 && atoi(argv[3]) >= 0 && atoi(argv[3]) <= 5){
         //printf("PASSOU PELA PARTE DE PRIOS\n");
-        snprintf(buffer, MAX, "%s;%s;%s;", argv[2], argv[3], argv[4]);
-        i = 5;
+        snprintf(buffer, MAX, "%s;%s;%s;", argv[3], argv[4], argv[5]);
+        i = 6;
 
         // Loop to write the filters separated by ";"
         for ( ; i < argc; i++) {
@@ -82,7 +82,7 @@ int main(int argc, char const *argv[]){
         snprintf(buffer + strlen(buffer), MAX, "end;%s\n", ret_fifo);
     }
     // Caso com o valor da prioridade fora dos limites.
-    else if( strcmp(argv[1], "proc-file") == 0 && strlen(argv[2]) == 1 && (atoi(argv[2]) < 0 || atoi(argv[2]) > 5) ){
+    else if( strcmp(argv[1], "proc-file") == 0 && strcmp(argv[2], "-p") == 0 && (atoi(argv[3]) < 0 || atoi(argv[3]) > 5) ){
         write(1, "Prioridade definida tem de estar entre 0 e 5.\n", 47);
         free(buffer);
         unlink(ret_fifo);
@@ -90,7 +90,7 @@ int main(int argc, char const *argv[]){
         return 0;
     }
     // Caso com prioridade default = 0.
-    else if( strcmp(argv[1], "proc-file") == 0 ){
+    else if( strcmp(argv[1], "proc-file") == 0){
         snprintf(buffer, MAX, "0;%s;%s;", argv[2], argv[3]);
         i = 4;
 
@@ -105,7 +105,7 @@ int main(int argc, char const *argv[]){
     }
     
     else{ // caso em que os argumentos estao mal definidos.
-        write(1, "./sdstore status\n./sdstore proc-file input-filename output-filename filter-id-1 filter-id-2 ...\n", 94);
+        write(1, "Informação sobre o servidor: (executavél) status\nEnvio de processamento de ficheiro: (executavél) proc-file input-filename output-filename filter-id-1 filter-id-2 ...\nEnvio de processamento de ficheiro com prioridade: (executavél) proc-file -p <priority> input-filename output-filename filter-id-1 filter-id-2 ...\n", 320);
         free(buffer);
         unlink(ret_fifo);
         free(ret_fifo);

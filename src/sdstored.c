@@ -658,7 +658,8 @@ int main(int argc, char const *argv[]){
                         }                    
                         
                         if(exec_request(t,req->n_transformations,transfs,req->source_path,req->output_path) < 0){
-                            printf("Nao foi possivel executar o request\n");
+                            //printf("Nao foi possivel executar o request\n");
+                            write(fd_reply, "Não foi possivel executar o request!\n", 39);
                         }
 
                         //printf("\n[DEBUG] Acabou de processar o request %d!!!\n\n", req->task);

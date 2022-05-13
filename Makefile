@@ -19,7 +19,7 @@ sr:
 	./bin/sdstored etc/sdstored.conf bin/sdstore-transformations
 
 pr1:
-	./bin/sdstore proc-file 1 files/file0.txt output/file_out0.txt nop
+	./bin/sdstore proc-file -p 1 files/file0.txt output/file_out0.txt nop bcompress
 
 pr2:
 	./bin/sdstore proc-file 2 files/file0.txt output/file_out0.txt bcompress

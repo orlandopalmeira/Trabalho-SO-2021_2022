@@ -8,7 +8,7 @@ int task_n = 1;
 int flag = 1;
 
 void sigterm_handler(int signum){
-    printf("Terminação graciosa\n");
+    printf("Terminação graciosa.\n");
     flag = 0;
 }
 
@@ -41,7 +41,6 @@ ssize_t readln(int fd, char *line, size_t size){
     }
 	return i;
 }
-
 
 
 // Adiciona ao fim da lista ligada r, um request codificado pela string request.
@@ -524,7 +523,7 @@ int main(int argc, char const *argv[]){
         return -1;
     }
 
-    printf("[DEBUG] PID DO SERVER: %d\n", getpid());
+    //printf("[DEBUG] PID DO SERVER: %d\n", getpid()); // para apresentar o pid do servidor.
 
     if(signal(SIGTERM,sigterm_handler) == SIG_ERR){
         perror("ERRO a registar o handler do SIGTERM");

@@ -409,7 +409,7 @@ void free_concluded_request(REQUEST *reqs, TRANSFS t){
     int r_wpid;
     while(req){
         // caso em que o pedido ainda não começou a ser processado.
-        if(req->pid == 0){
+        if(req->pid == 0 || req->pid == -1){
             ant = req;
             req = req->next;
         }

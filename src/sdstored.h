@@ -35,7 +35,7 @@ typedef struct requests {
     int n_transformations;       // numero de elementos do array 'transformations'
     int mem;            // indica a memoria alocada no array 'transformations'
     char * ret_fifo;    // string que indica o pipe que devem ser enviadas mensagens de reply ao cliente
-    pid_t pid;          // 0 se ainda nem foi verificado para processar, -1 se ja foi verificado para processar, >0 se esta em processamento com o numero do pid que o esta a processar.
+    pid_t pid;          // 0 (default value) se ainda nem foi verificado para processar, -1 se já foi verificado para processar, >0 se está em processamento com o numero do pid que o está a processar.
     struct requests * next;
 
 } *REQUEST;

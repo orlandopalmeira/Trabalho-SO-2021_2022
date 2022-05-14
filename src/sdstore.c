@@ -13,34 +13,12 @@
 #define MAX 1024
 #define MAIN_FIFO "tmp/main_fifo"
 
-/*
-// INUTILIZADO. TALVEZ PARA REMOVER. !!!
-char* build_request(char* argv[], int argc, char* pid) {
-
-    int i;
-    char* buffer = malloc(MAX);
-    // Type of instruction, input, output.
-    snprintf(buffer, MAX, "1,%s,%s,", argv[0], argv[1]);
-
-    // Loop to write the filters separated by ";"
-    for (i = 2; i < argc; i++) {
-        snprintf(buffer + strlen(buffer), MAX, "%s", argv[i]);
-        if (i != argc - 1) snprintf(buffer + strlen(buffer), MAX, " ");
-    }
-
-    // Loop to write the pid of the client
-    snprintf(buffer + strlen(buffer), MAX, ",%s", pid);
-
-    return buffer;
-}
-*/
-
 
 int main(int argc, char const *argv[]){
     
     if (argc == 1) { // Caso para explicar o que fazer ao utilizador.
 
-        write(1, "Executável precisa de argumentos!\nInformação sobre o servidor: (executavél) status\nEnvio de processamento de ficheiro: (executavél) proc-file input-filename output-filename filter-id-1 filter-id-2 ...\nEnvio de processamento de ficheiro com prioridade: (executavél) proc-file -p <priority> input-filename output-filename filter-id-1 filter-id-2 ...\n", 355);
+        write(1, "Executável precisa de argumentos!\nInformação sobre o servidor: (executavél) status\nEnvio de processamento de ficheiro: (executavél) proc-file input-filename output-filename transformation-1 transformation-2 ...\nEnvio de processamento de ficheiro com prioridade: (executavél) proc-file -p <priority> input-filename output-filename transformation-1 transformation-2 ...\n", 375);
         return 0;
     }
     // para obter um nome para criar um pipe em que retorne a informacao vinda do servidor.
@@ -72,13 +50,13 @@ int main(int argc, char const *argv[]){
         snprintf(buffer, MAX, "%s;%s;%s;", argv[3], argv[4], argv[5]);
         i = 6;
 
-        // Loop to write the filters separated by ";"
+        // Loop para escrever as transformations separadas por ";"
         for ( ; i < argc; i++) {
             snprintf(buffer + strlen(buffer), MAX, "%s;", argv[i]);
             //if (i != argc - 1) snprintf(buffer + strlen(buffer), MAX, ";");
         }
 
-        // To write the pid of the client
+        // To write the return pipe of the client
         snprintf(buffer + strlen(buffer), MAX, "end;%s\n", ret_fifo);
     }
     // Caso com o valor da prioridade fora dos limites.
@@ -94,18 +72,18 @@ int main(int argc, char const *argv[]){
         snprintf(buffer, MAX, "0;%s;%s;", argv[2], argv[3]);
         i = 4;
 
-        // Loop to write the filters separated by ";"
+        // Loop para escrever as transformations separadas por ";"
         for ( ; i < argc; i++) {
             snprintf(buffer + strlen(buffer), MAX, "%s;", argv[i]);
             //if (i != argc - 1) snprintf(buffer + strlen(buffer), MAX, ";");
         }
 
-        // To write the pid of the client
+        // To write the return pipe of the client
         snprintf(buffer + strlen(buffer), MAX, "end;%s\n", ret_fifo);
     }
     
     else{ // caso em que os argumentos estao mal definidos.
-        write(1, "Informação sobre o servidor: (executavél) status\nEnvio de processamento de ficheiro: (executavél) proc-file input-filename output-filename filter-id-1 filter-id-2 ...\nEnvio de processamento de ficheiro com prioridade: (executavél) proc-file -p <priority> input-filename output-filename filter-id-1 filter-id-2 ...\n", 320);
+        write(1, "Informação sobre o servidor: (executavél) status\nEnvio de processamento de ficheiro: (executavél) proc-file input-filename output-filename transformation-1 transformation-2 ...\nEnvio de processamento de ficheiro com prioridade: (executavél) proc-file -p <priority> input-filename output-filename transformation-1 transformation-2 ...\n", 340);
         free(buffer);
         unlink(ret_fifo);
         free(ret_fifo);

@@ -276,8 +276,7 @@ char * return_status(REQUEST reqs, TRANSFS t) {
     // Adds information on pending tasks
     for (r = reqs; r ; r = r->next) {
 
-        snprintf(res + strlen(res), MAX, "Task #%d: proc-file %d ", r->task, r->prio);
-        //snprintf(buffer + strlen(buffer), MAX, "proc-file ");
+        snprintf(res + strlen(res), MAX, "Task #%d: proc-file -p %d ", r->task, r->prio);
         
         snprintf(res + strlen(res), MAX, "%s %s ", r->source_path, r->output_path);
         for (i = 0; i<r->n_transformations; i++) {

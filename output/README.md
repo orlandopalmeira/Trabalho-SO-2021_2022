@@ -1,0 +1,1 @@
+# Pasta onde se devem colocar os ficheiros resultantes da execução do programa.

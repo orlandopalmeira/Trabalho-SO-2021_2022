@@ -1,19 +1,21 @@
 <img src='https://i.postimg.cc/hjkbcqPN/EEUM-logo.png' width="30%"/>
+
 <h3 align="center">Licenciatura em Engenharia Informática <br> Trabalho prático de Sistemas Operativos <br> 2021/2022 </h3>
+
+---
+<h3 align="center"> Colaboradores &#129309 </h2>
 
 <div align="center">
 
-[![Status](https://img.shields.io/badge/estado:-terminado-lightgrey)]()
-
+| Nome             | Número |
+|------------------|--------|
+| Miguel Pinto     | A96106 |
+| Orlando Palmeira | A97755 |
+| Pedro Martins    | A97613 |
 
 </div>
 
----
+### Nota: 17 / 20
 
-<p align="center">
-Miguel Silva Pinto <br>
-Orlando José da Cunha Palmeira <br> 
-Pedro Miguel Castilho Martins
-    <br> 
-</p>
-
+<h3><i>Keywords</i></h3>
+SO, Sistemas Operativos, sistemas operativos, universidade do minho, uminho, miei, lei, engenharia informatica

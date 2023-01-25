@@ -1,4 +1,4 @@
-<img src='https://i.postimg.cc/hjkbcqPN/EEUM-logo.png' width="30%"/>
+<img src='uminho.png' width="30%"/>
 
 <h3 align="center">Licenciatura em Engenharia Informática <br> Trabalho prático de Sistemas Operativos <br> 2021/2022 </h3>
 
